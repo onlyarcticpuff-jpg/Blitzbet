@@ -3,6 +3,7 @@
 <head>
   <title>BlitzBet</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
   <style>
     body {
       background: #0f0f0f;
@@ -11,23 +12,49 @@
       text-align: center;
       padding: 20px;
     }
-    button {
-      padding: 15px;
-      margin: 10px;
+
+    h1 { margin-bottom: 10px; }
+
+    .balance {
+      margin-bottom: 20px;
       font-size: 18px;
+    }
+
+    button {
+      padding: 12px 20px;
+      margin: 5px;
       border-radius: 10px;
       border: none;
       background: #1f1f1f;
       color: white;
+      font-size: 16px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 5px;
+      margin-top: 20px;
+    }
+
+    .tile {
+      height: 50px;
+      background: #1f1f1f;
+      border-radius: 6px;
     }
   </style>
 </head>
 <body>
 
 <h1>🎰 BlitzBet</h1>
-<p id="balance">Loading...</p>
+<div id="balance" class="balance">Loading...</div>
 
-<button onclick="spin()">🎰 Spin 100</button>
+<div>
+  <button onclick="showDice()">🎲 Dice</button>
+  <button onclick="showMines()">💣 Mines</button>
+</div>
+
+<div id="game"></div>
 
 <script>
 const tg = window.Telegram.WebApp;
@@ -38,6 +65,9 @@ const userId = user?.id;
 
 const BACKEND = "https://blit-production.up.railway.app";
 
+let balance = 0;
+
+// ================= LOAD BALANCE =================
 async function load() {
   const res = await fetch(BACKEND + "/start", {
     method: "POST",
@@ -46,11 +76,26 @@ async function load() {
   });
 
   const data = await res.json();
-  document.getElementById("balance").innerText =
-    "Balance: " + data.balance;
+  balance = data.balance;
+
+  updateBalance();
 }
 
-async function spin() {
+function updateBalance() {
+  document.getElementById("balance").innerText =
+    "💰 Balance: " + balance;
+}
+
+// ================= DICE =================
+function showDice() {
+  document.getElementById("game").innerHTML = `
+    <h2>🎲 Dice</h2>
+    <button onclick="rollDice()">Roll 100</button>
+    <p id="diceResult"></p>
+  `;
+}
+
+async function rollDice() {
   const res = await fetch(BACKEND + "/spin", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -59,10 +104,38 @@ async function spin() {
 
   const data = await res.json();
 
-  document.getElementById("balance").innerText =
-    "Balance: " + data.balance;
+  balance = data.balance;
+  updateBalance();
+
+  document.getElementById("diceResult").innerText =
+    data.win ? "🔥 Win!" : "💀 Lose";
 }
 
+// ================= MINES =================
+function showMines() {
+  let gridHTML = '<h2>💣 Mines</h2><div class="grid">';
+
+  for (let i = 0; i < 25; i++) {
+    gridHTML += `<div class="tile" onclick="clickTile(this)"></div>`;
+  }
+
+  gridHTML += "</div>";
+
+  document.getElementById("game").innerHTML = gridHTML;
+}
+
+function clickTile(el) {
+  const mine = Math.random() < 0.2;
+
+  if (mine) {
+    el.style.background = "red";
+    alert("💀 Boom");
+  } else {
+    el.style.background = "green";
+  }
+}
+
+// ================= INIT =================
 load();
 </script>
 
