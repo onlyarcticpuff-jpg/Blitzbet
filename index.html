@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>BlitzBet</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body {
+      background: #0f0f0f;
+      color: white;
+      font-family: Arial;
+      text-align: center;
+      padding: 20px;
+    }
+    button {
+      padding: 15px;
+      margin: 10px;
+      font-size: 18px;
+      border-radius: 10px;
+      border: none;
+      background: #1f1f1f;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<h1>🎰 BlitzBet</h1>
+<p id="balance">Loading...</p>
+
+<button onclick="spin()">🎰 Spin 100</button>
+
+<script>
+const tg = window.Telegram.WebApp;
+tg.expand();
+
+const user = tg.initDataUnsafe?.user;
+const userId = user?.id;
+
+const BACKEND = "https://YOUR-RAILWAY-URL.up.railway.app";
+
+async function load() {
+  const res = await fetch(BACKEND + "/start", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId })
+  });
+
+  const data = await res.json();
+  document.getElementById("balance").innerText =
+    "Balance: " + data.balance;
+}
+
+async function spin() {
+  const res = await fetch(BACKEND + "/spin", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId, bet: 100 })
+  });
+
+  const data = await res.json();
+
+  document.getElementById("balance").innerText =
+    "Balance: " + data.balance;
+}
+
+load();
+</script>
+
+</body>
+</html>
