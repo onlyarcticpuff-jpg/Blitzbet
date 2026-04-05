@@ -36,7 +36,7 @@ tg.expand();
 const user = tg.initDataUnsafe?.user;
 const userId = user?.id;
 
-const BACKEND = "https://blit-production.up.railway.app/";
+const BACKEND = "https://blit-production.up.railway.app";
 
 async function load() {
   const res = await fetch(BACKEND + "/start", {
