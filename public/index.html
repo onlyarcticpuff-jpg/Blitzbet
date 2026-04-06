@@ -562,6 +562,8 @@ async function startMines() {
 
   // ✅ instant feedback HERE
   el.innerHTML = "<span style='opacity:0.5'>•</span>";
+    el.style.transition = "all 0.4s ease";
+el.style.background = "var(--surface3)";
 
   // (optional press feel)
   el.style.transform = "scale(0.9)";
