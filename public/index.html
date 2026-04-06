@@ -544,11 +544,16 @@ function createGrid() {
 }
 
 async function startMines() {
-  await fetch(API + "/mines/start", {
+  const res = await fetch(API + "/mines/start", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id: userId, bet, mines: m.value })
   });
+
+  const data = await res.json();
+
+  window.board = data.board; // 🔥 THIS WAS MISSING
+
   active     = true;
   gemsFound  = 0;
   sessionBet = bet;
@@ -557,46 +562,36 @@ async function startMines() {
   startBtnWrap.innerHTML = `<div class="btn-in-progress">⬤&nbsp;&nbsp;Game In Progress</div>`;
   createGrid();
 }
-  async function clickTile(i, el) {
+async function clickTile(i, el) {
   if (!active) return;
+  if (!window.board) return;
 
-  // ✅ instant feedback HERE
+  // ⚡ instant feedback
   el.innerHTML = "<span style='opacity:0.5'>•</span>";
-    el.style.transition = "all 0.4s ease";
-el.style.background = "var(--surface3)";
-
-  // (optional press feel)
+  el.style.background = "var(--surface3)";
   el.style.transform = "scale(0.9)";
+  el.style.pointerEvents = "none";
+
   setTimeout(() => el.style.transform = "scale(1)", 100);
 
-  // ⬇️ THEN your fetch stays
+  const isMine = window.board[i];
 
-  const res = await fetch(API + "/mines/click", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id: userId, tile: i })
-  });
-
-  const d = await res.json();
-
-  if (d.lose) {
+  if (isMine) {
     play("mineSound");
     el.innerHTML = `<img src="/assets/bomb.png">`;
     active = false;
-
+    
     startBtnWrap.innerHTML = `<button class="btn-primary" onclick="startMines()">Start Game</button>`;
     cashoutResultBox.innerHTML = `
-      <div class="dice-toast lose" style="margin-top:0">
+      <div class="dice-toast lose">
         <span>✕</span><span>Bomb hit — game over</span>
       </div>`;
-
-    if (d.balance !== undefined) { balance = d.balance; updateBalance(true); }
-    else loadBalance();
-
   } else {
     play("gemSound");
     el.innerHTML = `<img src="/assets/gem.png">`;
     gemsFound++;
+  }
+}
 
     /* Show running gem count + multiplier if server returns it */
     const mult = d.multiplier !== undefined ? Number(d.multiplier) : null;
