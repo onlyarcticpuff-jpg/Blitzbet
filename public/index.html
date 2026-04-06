@@ -557,9 +557,17 @@ async function startMines() {
   startBtnWrap.innerHTML = `<div class="btn-in-progress">⬤&nbsp;&nbsp;Game In Progress</div>`;
   createGrid();
 }
-
-async function clickTile(i, el) {
+  async function clickTile(i, el) {
   if (!active) return;
+
+  // ✅ instant feedback HERE
+  el.innerHTML = "<span style='opacity:0.5'>•</span>";
+
+  // (optional press feel)
+  el.style.transform = "scale(0.9)";
+  setTimeout(() => el.style.transform = "scale(1)", 100);
+
+  // ⬇️ THEN your fetch stays
 
   const res = await fetch(API + "/mines/click", {
     method: "POST",
