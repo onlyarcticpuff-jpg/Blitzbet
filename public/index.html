@@ -627,4 +627,16 @@ async function cashout() {
   }
   if (payout !== null) {
     html += `<div class="co-divider"></div>
-    <div class="co-row"><span class="co-label">Payout</span><span class="co-val">€${payout.toFixed(2)}</sp
+    <div class="co-row"><span class="co-label">Payout</span><span class="co-val">€${payout.toFixed(2)}</span></div>`;
+  }
+  html += `</div>`;
+  cashoutResultBox.innerHTML = html;
+
+  if (d.balance !== undefined) { balance = d.balance; updateBalance(true); }
+  else loadBalance();
+}
+
+loadBalance();
+</script>
+</body>
+</html>
