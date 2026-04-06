@@ -116,8 +116,16 @@
   </div>
 
   <script>
-    const userId = window.Telegram.WebApp.initDataUnsafe.user.id;
+    const tg = window.Telegram.WebApp;
 
+const userId =
+  tg.initDataUnsafe?.user?.id ||
+  localStorage.getItem("testUserId") ||
+  (() => {
+    const id = Math.floor(Math.random() * 1000000000);
+    localStorage.setItem("testUserId", id);
+    return id;
+  })();
     async function load() {
       const res = await fetch("https://blit-production.up.railway.app/start", {
         method: "POST",
