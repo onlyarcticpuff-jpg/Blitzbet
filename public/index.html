@@ -551,6 +551,7 @@ async function startMines() {
   });
 
   const data = await res.json();
+  window.board = data.board || Array.from({ length: 25 }, () => Math.random() < 0.2);
 
   window.board = data.board; // 🔥 THIS WAS MISSING
 
@@ -570,7 +571,6 @@ async function clickTile(i, el) {
   el.innerHTML = "<span style='opacity:0.5'>•</span>";
   el.style.background = "var(--surface3)";
   el.style.transform = "scale(0.9)";
-  el.style.pointerEvents = "none";
 
   setTimeout(() => el.style.transform = "scale(1)", 100);
 
