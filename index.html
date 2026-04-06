@@ -1,226 +1,247 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>BlitzBet</title>
-  <style>
-    body {
-      margin: 0;
-      background: #0f1117;
-      color: white;
-      font-family: Arial;
-      text-align: center;
-    }
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BlitzBet</title>
 
-    h1 {
-      margin-top: 20px;
-      font-size: 28px;
-    }
+<style>
+body {
+  margin:0;
+  background:#0f1117;
+  color:white;
+  font-family:sans-serif;
+}
 
-    #balance {
-      font-size: 26px;
-      margin: 10px;
-      font-weight: bold;
-    }
+.topbar {
+  display:flex;
+  justify-content:space-between;
+  padding:15px;
+  background:#151823;
+}
 
-    .tabs {
-      display: flex;
-      justify-content: center;
-      margin: 20px;
-      gap: 10px;
-    }
+.card {
+  background:#1a1d26;
+  padding:20px;
+  border-radius:12px;
+  text-align:center;
+  cursor:pointer;
+  transition:0.2s;
+}
 
-    .tab {
-      padding: 10px 20px;
-      background: #1a1d26;
-      border-radius: 8px;
-      cursor: pointer;
-    }
+.card:hover {
+  transform:scale(1.05);
+}
 
-    .active {
-      background: #2f80ed;
-    }
+.grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:15px;
+  padding:20px;
+}
 
-    input {
-      padding: 10px;
-      border-radius: 6px;
-      border: none;
-      width: 200px;
-      margin: 10px;
-    }
+#game {
+  display:none;
+  padding:20px;
+}
 
-    button {
-      padding: 12px 20px;
-      border: none;
-      border-radius: 8px;
-      background: #2f80ed;
-      color: white;
-      cursor: pointer;
-      margin-top: 10px;
-    }
+button {
+  padding:10px 15px;
+  border:none;
+  border-radius:8px;
+  background:#6c5ce7;
+  color:white;
+  cursor:pointer;
+}
 
-    #grid {
-      display: grid;
-      grid-template-columns: repeat(5, 60px);
-      gap: 10px;
-      justify-content: center;
-      margin-top: 20px;
-    }
+input {
+  padding:10px;
+  border-radius:6px;
+  border:none;
+  margin:5px;
+}
 
-    .tile {
-      width: 60px;
-      height: 60px;
-      background: #1a1d26;
-      border-radius: 8px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-    }
+#grid {
+  display:grid;
+  grid-template-columns:repeat(5,60px);
+  gap:10px;
+  justify-content:center;
+  margin-top:20px;
+}
 
-    .safe { background: #27ae60; }
-    .mine { background: #eb5757; }
-  </style>
+.tile {
+  width:60px;
+  height:60px;
+  background:#1a1d26;
+  border-radius:8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+}
+
+img { width:30px; }
+</style>
 </head>
 
 <body>
 
-<h1>⚡ BlitzBet</h1>
-<div id="balance">$0.00</div>
-
-<div class="tabs">
-  <div class="tab active" onclick="switchGame('dice')">🎲 Dice</div>
-  <div class="tab" onclick="switchGame('mines')">💣 Mines</div>
+<div class="topbar">
+  <b>⚡ BlitzBet</b>
+  <div id="balance">$0.00</div>
 </div>
 
-<div id="diceUI">
-  <input id="bet" placeholder="Bet $" />
+<div id="home" class="grid">
 
-  <br>
+  <div class="card" onclick="openGame('dice')">
+    <img src="/assets/dice.png"><br>
+    Dice
+  </div>
 
-  <label>Chance: <span id="chanceVal">50</span>%</label><br>
-  <input type="range" min="1" max="95" value="50" id="chance">
+  <div class="card" onclick="openGame('mines')">
+    <img src="/assets/mines.png"><br>
+    Mines
+  </div>
 
-  <br>
-
-  <button onclick="rollDice()">Roll</button>
-  <div id="diceResult"></div>
 </div>
 
-<div id="minesUI" style="display:none">
-  <input id="minesBet" placeholder="Bet $" />
-  <input id="mineCount" placeholder="Mines (1-10)" />
-
-  <br>
-  <button onclick="startMines()">Start Game</button>
-  <button onclick="cashout()">Cashout</button>
-
-  <div id="grid"></div>
+<div id="game">
+  <button onclick="goBack()">⬅ Back</button>
+  <div id="content"></div>
 </div>
 
 <script>
 const API = "https://blit-production.up.railway.app";
 const userId = Number(new URLSearchParams(location.search).get("id"));
 
-let currentGame = "dice";
-
-function switchGame(game) {
-  currentGame = game;
-
-  document.getElementById("diceUI").style.display = game === "dice" ? "block" : "none";
-  document.getElementById("minesUI").style.display = game === "mines" ? "block" : "none";
-}
-
 async function loadBalance() {
   const res = await fetch(API + "/user/" + userId);
   const data = await res.json();
   document.getElementById("balance").innerText =
-    "$" + data.balanceUSD.toFixed(2);
+    "€" + data.balanceUSD.toFixed(2);
 }
 
-/* ================= DICE ================= */
+function openGame(name) {
+  document.getElementById("home").style.display = "none";
+  document.getElementById("game").style.display = "block";
 
-const slider = document.getElementById("chance");
-const val = document.getElementById("chanceVal");
+  if (name === "dice") renderDice();
+  if (name === "mines") renderMines();
+}
 
-slider.oninput = () => val.innerText = slider.value;
+function goBack() {
+  document.getElementById("home").style.display = "grid";
+  document.getElementById("game").style.display = "none";
+}
+
+function renderDice() {
+  document.getElementById("content").innerHTML = `
+    <h2>🎲 Dice</h2>
+    <input id="bet" placeholder="Bet €">
+    <br>
+    <input type="range" min="1" max="95" value="50" id="chance">
+    <span id="chanceVal">50</span>%
+    <br><br>
+    <button onclick="rollDice()">Roll</button>
+    <h3 id="diceResult"></h3>
+  `;
+
+  const slider = document.getElementById("chance");
+  slider.oninput = () => {
+    document.getElementById("chanceVal").innerText = slider.value;
+  };
+}
 
 async function rollDice() {
   const bet = Number(document.getElementById("bet").value);
-  const chance = Number(slider.value);
+  const chance = Number(document.getElementById("chance").value);
+  const resultEl = document.getElementById("diceResult");
 
-  document.getElementById("diceResult").innerText = "Rolling...";
-
-  await new Promise(r => setTimeout(r, 500));
+  let fake = setInterval(() => {
+    resultEl.innerText = (Math.random()*100).toFixed(2);
+  }, 40);
 
   const res = await fetch(API + "/dice", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({ id: userId, bet, chance })
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ id:userId, bet, chance })
   });
 
   const data = await res.json();
+  clearInterval(fake);
 
-  document.getElementById("diceResult").innerText =
-    data.win ? "🔥 WIN " + data.roll : "💀 LOSE " + data.roll;
+  resultEl.innerText =
+    data.roll + (data.win ? " 🔥 WIN" : " 💀 LOSE");
 
   loadBalance();
 }
 
-/* ================= MINES ================= */
-
 let gameActive = false;
 
+function renderMines() {
+  document.getElementById("content").innerHTML = `
+    <h2>💣 Mines</h2>
+    <input id="betM" placeholder="Bet €">
+    <input id="mines" placeholder="Mines (1-24)">
+    <br>
+    <button onclick="startMines()">Start</button>
+    <button onclick="cashout()">Cashout</button>
+    <div id="grid"></div>
+  `;
+}
+
 async function startMines() {
-  const bet = Number(document.getElementById("minesBet").value);
-  const mines = Number(document.getElementById("mineCount").value);
+  const bet = Number(document.getElementById("betM").value);
+  const mines = Number(document.getElementById("mines").value);
 
   await fetch(API + "/mines/start", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({ id: userId, bet, mines })
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ id:userId, bet, mines })
   });
 
   gameActive = true;
-  createGrid();
-}
 
-function createGrid() {
   const grid = document.getElementById("grid");
   grid.innerHTML = "";
 
-  for (let i = 0; i < 25; i++) {
+  for (let i=0;i<25;i++) {
     const tile = document.createElement("div");
-    tile.className = "tile";
-    tile.onclick = () => clickTile(i, tile);
+    tile.className="tile";
+    tile.onclick=()=>clickTile(i,tile);
     grid.appendChild(tile);
   }
 }
 
-async function clickTile(index, el) {
+async function clickTile(i, el) {
   if (!gameActive) return;
 
   const res = await fetch(API + "/mines/click", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({ id: userId, tile: index })
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ id:userId, tile:i })
   });
 
   const data = await res.json();
 
   if (data.lose) {
-    el.classList.add("mine");
+    el.innerHTML = `<img src="/assets/bomb.png">`;
     gameActive = false;
+
+    data.mines.forEach(idx => {
+      document.getElementsByClassName("tile")[idx].innerHTML =
+        `<img src="/assets/bomb.png">`;
+    });
+
   } else {
-    el.classList.add("safe");
+    el.innerHTML = `<img src="/assets/gem.png">`;
   }
 }
 
 async function cashout() {
-  const res = await fetch(API + "/mines/cashout", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({ id: userId })
+  await fetch(API + "/mines/cashout", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ id:userId })
   });
 
   gameActive = false;
