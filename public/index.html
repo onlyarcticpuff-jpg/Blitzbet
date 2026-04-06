@@ -10,7 +10,7 @@
 body {
   margin:0;
   font-family:'Inter',sans-serif;
-  background: radial-gradient(circle at top, #1a1d2e, #0b0d16);
+  background: linear-gradient(135deg,#0f1220,#1a1f3a,#2b1f4a);
   color:white;
 }
 
@@ -21,78 +21,65 @@ body {
 }
 
 .balance-box {
-  backdrop-filter: blur(12px);
   background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(10px);
   padding:10px 15px;
   border-radius:12px;
 }
 
-.grid {
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:15px;
-  padding:20px;
+.toggle {
+  margin-left:10px;
+  cursor:pointer;
+  opacity:0.7;
 }
 
+.active { opacity:1; }
+
 .card {
-  backdrop-filter: blur(12px);
   background: rgba(255,255,255,0.05);
   border-radius:16px;
   padding:25px;
   text-align:center;
-  cursor:pointer;
-  transition:0.2s;
+  margin:20px;
 }
 
-.card:hover { transform:scale(1.05); }
-
-#game { display:none; padding:20px; }
-
 button {
-  border:none;
-  border-radius:10px;
-  padding:10px 15px;
   background: linear-gradient(135deg,#6c5ce7,#a29bfe);
+  border:none;
+  padding:12px;
+  border-radius:10px;
   color:white;
   cursor:pointer;
 }
 
-.bet-box {
+.bet-controls {
   display:flex;
-  justify-content:center;
   gap:10px;
-  margin:15px 0;
-}
-
-.bet-display {
-  background: rgba(255,255,255,0.05);
-  padding:10px 20px;
-  border-radius:10px;
+  justify-content:center;
+  margin:10px 0;
 }
 
 .bar {
-  position:relative;
   height:20px;
-  background:#1a1d26;
+  background: linear-gradient(to right,#ff3b3b,#2ecc71);
   border-radius:10px;
+  position:relative;
   margin:20px 0;
-  overflow:hidden;
 }
 
 .pointer {
   position:absolute;
-  top:-5px;
   width:4px;
   height:30px;
   background:white;
+  top:-5px;
 }
 
-#grid {
+.grid {
   display:grid;
   grid-template-columns:repeat(5,60px);
   gap:10px;
   justify-content:center;
-  margin-top:20px;
 }
 
 .tile {
@@ -103,15 +90,11 @@ button {
   display:flex;
   align-items:center;
   justify-content:center;
-  cursor:pointer;
-  transition:0.1s;
 }
 
-.tile:active { transform:scale(0.9); }
-
-img { width:30px; }
-
-.slider { width:100%; }
+.glow {
+  box-shadow:0 0 20px #a29bfe;
+}
 </style>
 </head>
 
@@ -119,25 +102,23 @@ img { width:30px; }
 
 <div class="topbar">
   <b>⚡ BlitzBet</b>
-  <div class="balance-box" id="balance">€0.00</div>
-</div>
-
-<div id="home" class="grid">
-  <div class="card" onclick="openGame('dice')">
-    <img src="/assets/dice.png"><br>Dice
-  </div>
-
-  <div class="card" onclick="openGame('mines')">
-    <img src="/assets/mines.png"><br>Mines
+  <div>
+    <span id="balance">€0</span>
+    <span class="toggle active" onclick="setCurrency('eur')" id="eur">€</span>
+    <span class="toggle" onclick="setCurrency('sol')" id="sol">SOL</span>
   </div>
 </div>
 
-<div id="game">
-  <button onclick="goBack()">⬅ Back</button>
+<div id="home">
+  <div class="card" onclick="openGame('dice')">🎲 Dice</div>
+  <div class="card" onclick="openGame('mines')">💣 Mines</div>
+</div>
+
+<div id="game" style="display:none">
+  <button onclick="goBack()">Back</button>
   <div id="content"></div>
 </div>
 
-<!-- 🔊 SOUNDS -->
 <audio id="mineSound" src="/assets/sounds/mine.mp3"></audio>
 <audio id="gemSound" src="/assets/sounds/gem.mp3"></audio>
 <audio id="diceSound" src="/assets/sounds/dice.mp3"></audio>
@@ -146,191 +127,152 @@ img { width:30px; }
 const API = "https://blit-production.up.railway.app";
 const userId = Number(new URLSearchParams(location.search).get("id"));
 
-let balance = 0;
+let balanceUSD = 0;
+let solPrice = 150;
+let currency = "eur";
 let bet = 10;
-let active = false;
 
-/* 🔊 SOUND HANDLER */
-function playSound(id){
-  const s = document.getElementById(id);
-  s.currentTime = 0;
-  s.play();
+function format(val){
+  return currency==="eur" ? "€"+val.toFixed(2) : (val/solPrice).toFixed(4)+" SOL";
 }
 
-/* BALANCE */
-async function loadBalance(){
+function setCurrency(c){
+  currency=c;
+  eur.classList.toggle("active",c==="eur");
+  sol.classList.toggle("active",c==="sol");
+  updateUI();
+}
+
+async function load(){
   const res = await fetch(API+"/user/"+userId);
   const data = await res.json();
-  balance = data.balanceUSD;
-  balanceEl.innerText = "€"+balance.toFixed(2);
+  balanceUSD = data.balanceUSD;
+  updateUI();
 }
 
-/* NAV */
-function openGame(name){
+function updateUI(){
+  balance.innerText = format(balanceUSD);
+}
+
+function openGame(g){
   home.style.display="none";
   game.style.display="block";
-
-  if(name==="dice") renderDice();
-  if(name==="mines") renderMines();
+  if(g==="dice") diceUI();
+  if(g==="mines") minesUI();
 }
 
 function goBack(){
-  home.style.display="grid";
   game.style.display="none";
-}
-
-/* BET UI */
-function betUI(){
-  return `
-    <div class="bet-box">
-      <button onclick="bet-=1;updateBet()">-</button>
-      <div class="bet-display" id="betVal">€${bet}</div>
-      <button onclick="bet+=1;updateBet()">+</button>
-      <button onclick="bet=balance;updateBet()">MAX</button>
-    </div>
-  `;
-}
-
-function updateBet(){
-  if(bet<1) bet=1;
-  document.getElementById("betVal").innerText="€"+bet.toFixed(2);
+  home.style.display="block";
 }
 
 /* 🎲 DICE */
-function renderDice(){
-  content.innerHTML=`
-    <h2>🎲 Dice</h2>
-    ${betUI()}
+function diceUI(){
+  content.innerHTML = `
+    <h2>Dice</h2>
 
-    <input type="range" min="1" max="95" value="50" id="chance" class="slider">
-    <div id="chanceVal">50%</div>
-
-    <div class="bar">
-      <div class="pointer" id="pointer"></div>
+    <div class="bet-controls">
+      <button onclick="bet/=2">½</button>
+      <button onclick="bet*=2">2x</button>
     </div>
 
-    <button onclick="rollDice()">Roll</button>
-    <h3 id="result"></h3>
-  `;
+    <div class="bar"><div id="pointer" class="pointer"></div></div>
 
-  chance.oninput=()=> chanceVal.innerText=chance.value+"%";
+    <button onclick="roll()">Roll</button>
+    <h3 id="res"></h3>
+  `;
 }
 
-async function rollDice(){
-  const pointer=document.getElementById("pointer");
-  const result=document.getElementById("result");
+async function roll(){
+  play("diceSound");
 
-  playSound("diceSound");
+  let p = document.getElementById("pointer");
 
-  let speed=50;
-  let pos=0;
+  let i = setInterval(()=>{
+    p.style.left = Math.random()*100+"%";
+  },30);
 
-  const anim=setInterval(()=>{
-    pos=Math.random()*100;
-    pointer.style.left=pos+"%";
-  },20);
-
-  const res=await fetch(API+"/dice",{
+  const r = await fetch(API+"/dice",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({id:userId,bet,chance:chance.value})
+    body:JSON.stringify({id:userId,bet})
   });
 
-  const data=await res.json();
+  const d = await r.json();
 
-  clearInterval(anim);
+  clearInterval(i);
+  p.style.left = d.roll+"%";
 
-  pointer.style.left=data.roll+"%";
+  if(d.win){
+    res.innerText="WIN";
+    res.classList.add("glow");
+  } else res.innerText="LOSE";
 
-  result.innerText =
-    data.roll + (data.win ? " 🔥 WIN":" 💀 LOSE");
-
-  loadBalance();
+  load();
 }
 
 /* 💣 MINES */
-function renderMines(){
+function minesUI(){
   content.innerHTML=`
-    <h2>💣 Mines</h2>
-    ${betUI()}
+    <h2>Mines</h2>
 
-    <input type="range" min="1" max="24" value="5" id="minesSlider" class="slider">
-    <div id="minesVal">5 mines</div>
+    <div class="bet-controls">
+      <button onclick="bet/=2">½</button>
+      <button onclick="bet*=2">2x</button>
+    </div>
 
-    <button onclick="startMines()">Start</button>
-    <button onclick="cashout()">Cashout</button>
+    <button onclick="start()">Start</button>
+    <button onclick="cash()">Cashout</button>
 
-    <div id="grid"></div>
+    <div class="grid" id="grid"></div>
   `;
 
-  minesSlider.oninput=()=> minesVal.innerText=minesSlider.value+" mines";
-
-  createGrid();
-}
-
-function createGrid(){
-  grid.innerHTML="";
   for(let i=0;i<25;i++){
-    let tile=document.createElement("div");
-    tile.className="tile";
-    tile.onclick=()=>clickTile(i,tile);
-    grid.appendChild(tile);
+    let d=document.createElement("div");
+    d.className="tile";
+    d.onclick=()=>clickTile(i,d);
+    grid.appendChild(d);
   }
 }
 
-async function startMines(){
-  await fetch(API+"/mines/start",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({id:userId,bet,mines:minesSlider.value})
-  });
-
-  active=true;
+async function start(){
+  await fetch(API+"/mines/start",{method:"POST",
+  headers:{"Content-Type":"application/json"},
+  body:JSON.stringify({id:userId,bet,mines:5})});
 }
 
 async function clickTile(i,el){
-  if(!active) return;
-
-  el.style.transform="scale(0.9)";
-  setTimeout(()=>el.style.transform="scale(1)",100);
-
-  const res=await fetch(API+"/mines/click",{
+  const r = await fetch(API+"/mines/click",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({id:userId,tile:i})
   });
 
-  const data=await res.json();
+  const d = await r.json();
 
-  if(data.lose){
-    playSound("mineSound");
-
-    el.innerHTML=`<img src="/assets/bomb.png">`;
-    active=false;
-
-    data.mines.forEach(idx=>{
-      document.getElementsByClassName("tile")[idx].innerHTML=
-      `<img src="/assets/bomb.png">`;
-    });
-
+  if(d.lose){
+    play("mineSound");
+    el.innerHTML="💣";
   } else {
-    playSound("gemSound");
-    el.innerHTML=`<img src="/assets/gem.png">`;
+    play("gemSound");
+    el.innerHTML="💎";
   }
 }
 
-async function cashout(){
-  await fetch(API+"/mines/cashout",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({id:userId})
-  });
-
-  active=false;
-  loadBalance();
+async function cash(){
+  await fetch(API+"/mines/cashout",{method:"POST",
+  headers:{"Content-Type":"application/json"},
+  body:JSON.stringify({id:userId})});
+  load();
 }
 
-loadBalance();
+function play(id){
+  let s=document.getElementById(id);
+  s.currentTime=0;
+  s.play();
+}
+
+load();
 </script>
 
 </body>
