@@ -471,8 +471,34 @@ async function rollDice() {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id: userId, bet, chance: chance.value })
-    
-  }/* ════════════════════════════════
+  });
+
+  const d = await res.json();
+
+  /* Snap pointer directly to result — no scramble */
+  pointer.style.left = d.roll + "%";
+  rollVal.innerText  = d.roll;
+
+  const won = d.win;
+  diceResultBox.innerHTML = `
+    <div class="dice-toast ${won ? 'win' : 'lose'}">
+      <span>${won ? '✓' : '✕'}</span>
+      <span>Rolled ${d.roll} — ${won ? 'You Win!' : 'You Lose'}</span>
+    </div>`;
+
+  /* Update balance instantly if server returns it, else fetch */
+  if (d.balance !== undefined) {
+    balance = d.balance;
+    updateBalance(true);
+  } else {
+    loadBalance();
+  }
+
+  btn.disabled = false;
+  btn.textContent = "Place Bet";
+}
+
+/* ════════════════════════════════
    MINES
 ════════════════════════════════ */
 let gemsFound  = 0;
@@ -518,17 +544,11 @@ function createGrid() {
 }
 
 async function startMines() {
-  const res = await fetch(API + "/mines/start", {
+  await fetch(API + "/mines/start", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id: userId, bet, mines: m.value })
   });
-
-  const data = await res.json();
-
-  // ✅ SAFE BOARD (no break if backend fails)
-  window.board = data.board || Array.from({ length: 25 }, () => Math.random() < 0.2);
-
   active     = true;
   gemsFound  = 0;
   sessionBet = bet;
@@ -540,56 +560,45 @@ async function startMines() {
 
 async function clickTile(i, el) {
   if (!active) return;
-  if (!window.board) return;
 
-  // ❌ prevent double click cleanly
-  if (el.innerHTML !== "") return;
+  const res = await fetch(API + "/mines/click", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id: userId, tile: i })
+  });
 
-  // ⚡ instant feedback
-  el.innerHTML = "<span style='opacity:0.5'>•</span>";
-  el.style.background = "var(--surface3)";
-  el.style.transform = "scale(0.9)";
-  setTimeout(() => el.style.transform = "scale(1)", 100);
+  const d = await res.json();
 
-  const isMine = window.board[i];
-
-  if (isMine) {
+  if (d.lose) {
     play("mineSound");
     el.innerHTML = `<img src="/assets/bomb.png">`;
     active = false;
 
     startBtnWrap.innerHTML = `<button class="btn-primary" onclick="startMines()">Start Game</button>`;
     cashoutResultBox.innerHTML = `
-      <div class="dice-toast lose">
+      <div class="dice-toast lose" style="margin-top:0">
         <span>✕</span><span>Bomb hit — game over</span>
       </div>`;
+
+    if (d.balance !== undefined) { balance = d.balance; updateBalance(true); }
+    else loadBalance();
+
   } else {
     play("gemSound");
     el.innerHTML = `<img src="/assets/gem.png">`;
     gemsFound++;
 
-    const minesCount = Number(m.value);
-    const safeTiles = 25 - minesCount;
-
-    const mult = Math.pow((25 / safeTiles), gemsFound) * 0.98;
-
-    cashoutResultBox.innerHTML = `
-      <div class="cashout-box">
-        <div class="co-row">
-          <span class="co-label">Gems</span>
-          <span class="co-val">${gemsFound}</span>
-        </div>
-        <div class="co-divider"></div>
-        <div class="co-row">
-          <span class="co-label">Multiplier</span>
-          <span class="co-val">${mult.toFixed(2)}×</span>
-        </div>
-        <div class="co-row">
-          <span class="co-label">Potential</span>
-          <span class="co-val">€${(sessionBet * mult).toFixed(2)}</span>
-        </div>
-      </div>
-    `;
+    /* Show running gem count + multiplier if server returns it */
+    const mult = d.multiplier !== undefined ? Number(d.multiplier) : null;
+    let html = `<div class="cashout-box">
+      <div class="co-row"><span class="co-label">Gems found</span><span class="co-val">${gemsFound}</span></div>`;
+    if (mult !== null) {
+      html += `<div class="co-divider"></div>
+      <div class="co-row"><span class="co-label">Multiplier</span><span class="co-val">${mult.toFixed(2)}×</span></div>
+      <div class="co-row"><span class="co-label">Potential payout</span><span class="co-val">€${(sessionBet * mult).toFixed(2)}</span></div>`;
+    }
+    html += `</div>`;
+    cashoutResultBox.innerHTML = html;
   }
 }
 
@@ -606,61 +615,28 @@ async function cashout() {
   startBtnWrap.innerHTML = `<button class="btn-primary" onclick="startMines()">Start Game</button>`;
 
   const mult   = d.multiplier !== undefined ? Number(d.multiplier) : null;
-  const payout = d.payout !== undefined
+  const payout = d.payout     !== undefined
     ? Number(d.payout)
     : (mult !== null ? sessionBet * mult : null);
 
   let html = `<div class="cashout-box">
-    <div class="co-row"><span class="co-label">Gems</span><span class="co-val">${gemsFound}</span></div>`;
-
+    <div class="co-row"><span class="co-label">Gems found</span><span class="co-val">${gemsFound}</span></div>`;
   if (mult !== null) {
     html += `<div class="co-divider"></div>
-      <div class="co-row"><span class="co-label">Multiplier</span><span class="co-val">${mult.toFixed(2)}×</span></div>`;
+    <div class="co-row"><span class="co-label">Multiplier</span><span class="co-val">${mult.toFixed(2)}×</span></div>`;
   }
-
   if (payout !== null) {
     html += `<div class="co-divider"></div>
-      <div class="co-row"><span class="co-label">Payout</span><span class="co-val">€${payout.toFixed(2)}</span></div>`;
+    <div class="co-row"><span class="co-label">Payout</span><span class="co-val">€${payout.toFixed(2)}</span></div>`;
   }
-
   html += `</div>`;
   cashoutResultBox.innerHTML = html;
 
-  if (d.balance !== undefined) {
-    balance = d.balance;
-    updateBalance(true);
-  } else {
-    loadBalance();
-  }
+  if (d.balance !== undefined) { balance = d.balance; updateBalance(true); }
+  else loadBalance();
 }
 
-loadBalance(););
-
-  const d = await res.json();
-
-  /* Snap pointer directly to result — no scramble */
-  pointer.style.left = d.roll + "%";
-  rollVal.innerText  = d.roll;
-
-  const won = d.win;
-  diceResultBox.innerHTML = `
-    <div class="dice-toast ${won ? 'win' : 'lose'}">
-      <span>${won ? '✓' : '✕'}</span>
-      <span>Rolled ${d.roll} — ${won ? 'You Win!' : 'You Lose'}</span>
-    </div>`;
-
-  /* Update balance instantly if server returns it, else fetch */
-  if (d.balance !== undefined) {
-    balance = d.balance;
-    updateBalance(true);
-  } else {
-    loadBalance();
-  }
-
-  btn.disabled = false;
-  btn.textContent = "Place Bet";
-}
-
+loadBalance();
 </script>
 </body>
 </html>
