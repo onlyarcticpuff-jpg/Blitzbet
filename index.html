@@ -1,143 +1,161 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>BlitzBet</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <style>
     body {
-      background: #0f0f0f;
+      margin: 0;
+      background: #0b0f1a;
       color: white;
-      font-family: Arial;
-      text-align: center;
+      font-family: -apple-system, sans-serif;
+    }
+
+    .container {
       padding: 20px;
     }
 
-    h1 { margin-bottom: 10px; }
-
-    .balance {
+    .balance-card {
+      background: linear-gradient(145deg, #111827, #0b1220);
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.7);
       margin-bottom: 20px;
-      font-size: 18px;
     }
 
-    button {
-      padding: 12px 20px;
-      margin: 5px;
-      border-radius: 10px;
+    .label {
+      color: #7c8aa0;
+      font-size: 13px;
+    }
+
+    .usd {
+      font-size: 40px;
+      font-weight: 700;
+      margin-top: 5px;
+    }
+
+    .sol {
+      color: #7c8aa0;
+      font-size: 14px;
+      margin-top: 5px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 16px;
+      margin-top: 12px;
+      border-radius: 14px;
       border: none;
-      background: #1f1f1f;
-      color: white;
+      font-weight: 600;
       font-size: 16px;
+      color: white;
+      cursor: pointer;
+      transition: 0.2s;
     }
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 5px;
+    .btn-primary {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      box-shadow: 0 10px 30px rgba(37,99,235,0.4);
+    }
+
+    .btn-primary:active {
+      transform: scale(0.97);
+    }
+
+    .games {
       margin-top: 20px;
     }
 
-    .tile {
-      height: 50px;
-      background: #1f1f1f;
-      border-radius: 6px;
+    .game-card {
+      background: #111827;
+      border-radius: 16px;
+      padding: 15px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .game-title {
+      font-weight: 600;
+    }
+
+    .play {
+      background: #22c55e;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 14px;
     }
   </style>
 </head>
+
 <body>
+  <div class="container">
 
-<h1>🎰 BlitzBet</h1>
-<div id="balance" class="balance">Loading...</div>
+    <div class="balance-card">
+      <div class="label">Balance</div>
+      <div class="usd" id="usd">$0.00</div>
+      <div class="sol" id="sol">≈ 0 SOL</div>
+    </div>
 
-<div>
-  <button onclick="showDice()">🎲 Dice</button>
-  <button onclick="showMines()">💣 Mines</button>
-</div>
+    <button class="btn btn-primary" onclick="spin()">🎰 Spin</button>
 
-<div id="game"></div>
+    <div class="games">
+      <div class="game-card">
+        <div class="game-title">🎲 Dice</div>
+        <div class="play">Play</div>
+      </div>
 
-<script>
-const tg = window.Telegram.WebApp;
-tg.expand();
+      <div class="game-card">
+        <div class="game-title">💣 Mines</div>
+        <div class="play">Play</div>
+      </div>
+    </div>
 
-const user = tg.initDataUnsafe?.user;
-const userId = user?.id;
+  </div>
 
-const BACKEND = "https://blit-production.up.railway.app";
+  <script>
+    const userId = window.Telegram.WebApp.initDataUnsafe.user.id;
 
-let balance = 0;
+    async function load() {
+      const res = await fetch("https://blit-production.up.railway.app/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId })
+      });
 
-// ================= LOAD BALANCE =================
-async function load() {
-  const res = await fetch(BACKEND + "/start", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId })
-  });
+      const data = await res.json();
+      update(data);
+    }
 
-  const data = await res.json();
-  balance = data.balance;
+    function update(data) {
+      document.getElementById("usd").innerText =
+        "$" + data.usd.toFixed(2);
 
-  updateBalance();
-}
+      document.getElementById("sol").innerText =
+        "≈ " + data.sol.toFixed(4) + " SOL";
+    }
 
-function updateBalance() {
-  document.getElementById("balance").innerText =
-    "💰 Balance: " + balance;
-}
+    async function spin() {
+      const res = await fetch("https://blit-production.up.railway.app/spin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId })
+      });
 
-// ================= DICE =================
-function showDice() {
-  document.getElementById("game").innerHTML = `
-    <h2>🎲 Dice</h2>
-    <button onclick="rollDice()">Roll 100</button>
-    <p id="diceResult"></p>
-  `;
-}
+      const data = await res.json();
 
-async function rollDice() {
-  const res = await fetch(BACKEND + "/spin", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId, bet: 100 })
-  });
+      if (data.win) {
+        alert("🔥 You won!");
+      } else {
+        alert("💀 You lost");
+      }
 
-  const data = await res.json();
+      update(data);
+    }
 
-  balance = data.balance;
-  updateBalance();
-
-  document.getElementById("diceResult").innerText =
-    data.win ? "🔥 Win!" : "💀 Lose";
-}
-
-// ================= MINES =================
-function showMines() {
-  let gridHTML = '<h2>💣 Mines</h2><div class="grid">';
-
-  for (let i = 0; i < 25; i++) {
-    gridHTML += `<div class="tile" onclick="clickTile(this)"></div>`;
-  }
-
-  gridHTML += "</div>";
-
-  document.getElementById("game").innerHTML = gridHTML;
-}
-
-function clickTile(el) {
-  const mine = Math.random() < 0.2;
-
-  if (mine) {
-    el.style.background = "red";
-    alert("💀 Boom");
-  } else {
-    el.style.background = "green";
-  }
-}
-
-// ================= INIT =================
-load();
-</script>
-
+    load();
+  </script>
 </body>
 </html>
