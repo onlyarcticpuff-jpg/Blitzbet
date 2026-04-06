@@ -1,169 +1,101 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>BlitzBet</title>
-
-  <style>
-    body {
-      margin: 0;
-      background: #0b0f1a;
-      color: white;
-      font-family: -apple-system, sans-serif;
-    }
-
-    .container {
-      padding: 20px;
-    }
-
-    .balance-card {
-      background: linear-gradient(145deg, #111827, #0b1220);
-      border-radius: 20px;
-      padding: 25px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.7);
-      margin-bottom: 20px;
-    }
-
-    .label {
-      color: #7c8aa0;
-      font-size: 13px;
-    }
-
-    .usd {
-      font-size: 40px;
-      font-weight: 700;
-      margin-top: 5px;
-    }
-
-    .sol {
-      color: #7c8aa0;
-      font-size: 14px;
-      margin-top: 5px;
-    }
-
-    .btn {
-      width: 100%;
-      padding: 16px;
-      margin-top: 12px;
-      border-radius: 14px;
-      border: none;
-      font-weight: 600;
-      font-size: 16px;
-      color: white;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, #3b82f6, #2563eb);
-      box-shadow: 0 10px 30px rgba(37,99,235,0.4);
-    }
-
-    .btn-primary:active {
-      transform: scale(0.97);
-    }
-
-    .games {
-      margin-top: 20px;
-    }
-
-    .game-card {
-      background: #111827;
-      border-radius: 16px;
-      padding: 15px;
-      margin-bottom: 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .game-title {
-      font-weight: 600;
-    }
-
-    .play {
-      background: #22c55e;
-      padding: 8px 14px;
-      border-radius: 10px;
-      font-size: 14px;
-    }
-  </style>
 </head>
+<body style="background:#0f0f0f;color:white;font-family:sans-serif;text-align:center">
 
-<body>
-  <div class="container">
+<h1>🎰 BlitzBet</h1>
 
-    <div class="balance-card">
-      <div class="label">Balance</div>
-      <div class="usd" id="usd">$0.00</div>
-      <div class="sol" id="sol">≈ 0 SOL</div>
-    </div>
+<h2 id="balance">$0.00</h2>
 
-    <button class="btn btn-primary" onclick="spin()">🎰 Spin</button>
+<input id="bet" placeholder="Bet $" />
 
-    <div class="games">
-      <div class="game-card">
-        <div class="game-title">🎲 Dice</div>
-        <div class="play">Play</div>
-      </div>
+<br><br>
 
-      <div class="game-card">
-        <div class="game-title">💣 Mines</div>
-        <div class="play">Play</div>
-      </div>
-    </div>
+<button onclick="playDice()">🎲 Dice</button>
+<button onclick="playMines()">💣 Mines</button>
 
-  </div>
+<p id="result"></p>
 
-  <script>
-    const tg = window.Telegram.WebApp;
+<script>
+const API = "https://blit-production.up.railway.app";
 
-const userId =
-  tg.initDataUnsafe?.user?.id ||
-  localStorage.getItem("testUserId") ||
-  (() => {
-    const id = Math.floor(Math.random() * 1000000000);
-    localStorage.setItem("testUserId", id);
-    return id;
-  })();
-    async function load() {
-      const res = await fetch("https://blit-production.up.railway.app/start", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId })
-      });
+const params = new URLSearchParams(window.location.search);
+const userId = Number(params.get("id"));
 
-      const data = await res.json();
-      update(data);
-    }
+if (!userId) {
+  document.body.innerHTML = "No user ID provided 💀";
+}
 
-    function update(data) {
-      document.getElementById("usd").innerText =
-        "$" + data.usd.toFixed(2);
+/* ================= LOAD BALANCE ================= */
 
-      document.getElementById("sol").innerText =
-        "≈ " + data.sol.toFixed(4) + " SOL";
-    }
+async function loadBalance() {
+  const res = await fetch(API + "/user/" + userId);
+  const data = await res.json();
 
-    async function spin() {
-      const res = await fetch("https://blit-production.up.railway.app/spin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId })
-      });
+  if (data.error) return;
 
-      const data = await res.json();
+  document.getElementById("balance").innerText =
+    "$" + data.balanceUSD.toFixed(2);
+}
 
-      if (data.win) {
-        alert("🔥 You won!");
-      } else {
-        alert("💀 You lost");
-      }
+/* ================= DICE ================= */
 
-      update(data);
-    }
+async function playDice() {
+  const bet = Number(document.getElementById("bet").value);
 
-    load();
-  </script>
+  if (!bet || bet <= 0) return alert("Invalid bet");
+
+  const res = await fetch(API + "/dice", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id: userId, bet })
+  });
+
+  const data = await res.json();
+
+  if (data.error) {
+    document.getElementById("result").innerText = "❌ Invalid bet";
+    return;
+  }
+
+  document.getElementById("result").innerText =
+    data.win ? "🔥 You won!" : "💀 You lost";
+
+  loadBalance();
+}
+
+/* ================= MINES ================= */
+
+async function playMines() {
+  const bet = Number(document.getElementById("bet").value);
+
+  if (!bet || bet <= 0) return alert("Invalid bet");
+
+  const res = await fetch(API + "/mines", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id: userId, bet })
+  });
+
+  const data = await res.json();
+
+  if (data.error) {
+    document.getElementById("result").innerText = "❌ Invalid bet";
+    return;
+  }
+
+  document.getElementById("result").innerText =
+    data.hitMine ? "💀 Boom!" : "🔥 Safe!";
+
+  loadBalance();
+}
+
+/* ================= INIT ================= */
+
+loadBalance();
+</script>
+
 </body>
 </html>
