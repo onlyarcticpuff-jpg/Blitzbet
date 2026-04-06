@@ -7,465 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-  --bg:        #0d1117;
-  --surface:   #161b27;
-  --surface2:  #1c2333;
-  --surface3:  #222840;
-  --border:    rgba(255,255,255,0.06);
-  --border2:   rgba(255,255,255,0.10);
-  --text:      #e6edf3;
-  --muted:     #7d8590;
-  --accent:    #3b82f6;
-  --accent-h:  #2563eb;
-  --win:       #22c55e;
-  --lose:      #ef4444;
-  --gold:      #f59e0b;
-}
-
-body {
-  font-family: 'DM Sans', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-/* ─── TOPBAR ─────────────────────────────── */
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  height: 60px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.logo {
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  color: var(--text);
-}
-
-.logo span {
-  color: var(--accent);
-}
-
-.balance-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.currency-tabs {
-  display: flex;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 3px;
-  gap: 2px;
-}
-
-.currency-tabs .toggle {
-  cursor: pointer;
-  padding: 4px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
-  transition: all 0.15s;
-  user-select: none;
-}
-
-.currency-tabs .toggle.active {
-  background: var(--surface3);
-  color: var(--text);
-}
-
-.balance-chip {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  padding: 7px 14px;
-  border-radius: 10px;
-}
-
-.balance-chip .bal-icon {
-  width: 22px;
-  height: 22px;
-  background: var(--accent);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-  color: #fff;
-  flex-shrink: 0;
-}
-
-.balance-chip .bal-amount {
-  font-family: 'DM Mono', monospace;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text);
-}
-
-/* ─── HOME ───────────────────────────────── */
-#home {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  padding: 32px 24px;
-  max-width: 700px;
-  margin: 0 auto;
-}
-
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 32px 20px;
-  text-align: center;
-  cursor: pointer;
-  transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
-  position: relative;
-  overflow: hidden;
-}
-
-.card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 50% 0%, rgba(59,130,246,0.06) 0%, transparent 70%);
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.card:hover {
-  transform: translateY(-4px);
-  border-color: var(--border2);
-  box-shadow: 0 12px 32px rgba(0,0,0,0.35);
-}
-
-.card:hover::before { opacity: 1; }
-
-.card-icon {
-  width: 56px;
-  height: 56px;
-  margin: 0 auto 16px;
-  background: var(--surface2);
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px;
-}
-
-.card-icon img { width: 32px; height: 32px; object-fit: contain; }
-
-.card h3 {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 4px;
-}
-
-.card p {
-  font-size: 12px;
-  color: var(--muted);
-}
-
-/* ─── GAME WRAPPER ───────────────────────── */
-#game {
-  display: none;
-  padding: 24px;
-  max-width: 820px;
-  margin: 0 auto;
-}
-
-.back-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--muted);
-  padding: 7px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 13px;
-  font-family: 'DM Sans', sans-serif;
-  font-weight: 500;
-  transition: color 0.15s, border-color 0.15s;
-  margin-bottom: 20px;
-}
-
-.back-btn:hover { color: var(--text); border-color: var(--border2); }
-
-.back-btn svg { width: 14px; height: 14px; }
-
-/* ─── PANELS ─────────────────────────────── */
-.panel {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 20px;
-  margin-bottom: 12px;
-}
-
-.panel-title {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-  margin-bottom: 14px;
-}
-
-/* ─── BET INPUT ───────────────────────────── */
-.bet-input-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 4px 4px 4px 14px;
-  margin-top: 6px;
-}
-
-.bet-input-row .bet-label {
-  font-family: 'DM Mono', monospace;
-  font-size: 15px;
-  font-weight: 500;
-  flex: 1;
-  color: var(--text);
-}
-
-.bet-modifiers {
-  display: flex;
-  gap: 4px;
-}
-
-.bet-mod {
-  background: var(--surface3);
-  border: none;
-  border-radius: 7px;
-  padding: 6px 11px;
-  cursor: pointer;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 600;
-  font-family: 'DM Sans', sans-serif;
-  transition: color 0.15s, background 0.15s;
-}
-
-.bet-mod:hover { background: var(--border2); color: var(--text); }
-
-/* ─── DICE ────────────────────────────────── */
-.dice-stats {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 18px;
-}
-
-.stat-pill {
-  flex: 1;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 12px 14px;
-  text-align: center;
-}
-
-.stat-pill .stat-label {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-  margin-bottom: 4px;
-}
-
-.stat-pill .stat-val {
-  font-family: 'DM Mono', monospace;
-  font-size: 18px;
-  font-weight: 500;
-  color: var(--text);
-}
-
-/* Custom range slider */
-input[type="range"] {
-  -webkit-appearance: none;
-  width: 100%;
-  height: 4px;
-  border-radius: 4px;
-  background: var(--surface3);
-  outline: none;
-  margin: 10px 0 16px;
-  cursor: pointer;
-}
-
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 3px rgba(59,130,246,0.25);
-  transition: box-shadow 0.15s;
-  cursor: grab;
-}
-
-input[type="range"]::-webkit-slider-thumb:active {
-  cursor: grabbing;
-  box-shadow: 0 0 0 5px rgba(59,130,246,0.3);
-}
-
-.dice-bar-wrap {
-  position: relative;
-  margin-top: 4px;
-  margin-bottom: 8px;
-}
-
-.bar {
-  height: 12px;
-  border-radius: 8px;
-  overflow: hidden;
-  position: relative;
-}
-
-.bar-track {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to right, var(--lose) 50%, var(--win) 50%);
-  transition: background 0.15s;
-}
-
-.pointer {
-  position: absolute;
-  top: -9px;
-  width: 4px;
-  height: 30px;
-  background: #fff;
-  border-radius: 4px;
-  box-shadow: 0 0 8px rgba(255,255,255,0.5);
-  transition: left 0.15s ease-out;
-  transform: translateX(-50%);
-}
-
-.dice-result {
-  margin-top: 14px;
-  text-align: center;
-  font-family: 'DM Mono', monospace;
-  font-size: 14px;
-  height: 20px;
-  transition: opacity 0.2s;
-}
-
-/* ─── MINES ───────────────────────────────── */
-.mines-layout {
-  display: grid;
-  grid-template-columns: 1fr 220px;
-  gap: 12px;
-  align-items: start;
-}
-
-@media (max-width: 600px) {
-  .mines-layout { grid-template-columns: 1fr; }
-}
-
-#grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
-}
-
-.tile {
-  aspect-ratio: 1;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: transform 0.1s, background 0.15s, border-color 0.15s;
-  user-select: none;
-}
-
-.tile:hover {
-  background: var(--surface3);
-  border-color: var(--border2);
-}
-
-.tile:active { transform: scale(0.91); }
-
-.tile img { width: 32px; height: 32px; object-fit: contain; }
-
-.mines-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.mines-slider-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 2px;
-}
-
-.mines-slider-row span { font-size: 13px; color: var(--muted); }
-.mines-slider-row strong { font-family: 'DM Mono', monospace; font-size: 14px; color: var(--text); }
-
-/* ─── BUTTONS ─────────────────────────────── */
-.btn-primary {
-  width: 100%;
-  padding: 13px;
-  background: var(--accent);
-  border: none;
-  border-radius: 10px;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 700;
-  font-family: 'DM Sans', sans-serif;
-  cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
-  letter-spacing: 0.01em;
-}
-
-.btn-primary:hover { background: var(--accent-h); }
-.btn-primary:active { transform: scale(0.98); }
-
-.btn-win {
-  width: 100%;
-  padding: 13px;
-  background: rgba(34,197,94,0.12);
-  border: 1px solid rgba(34,197,94,0.25);
-  border-radius: 10px;
-  color: var(--win);
-  font-size: 14px;
-  font-weight: 700;
-  font-family: 'DM Sans', sans-serif;
-  cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
-  letter-spacing: 0.01em;
-}
-
-.btn-win:hover { background: rgba(34,197,94,0.2); }
-.btn-win:active { transform: scale(0.98); }
+/* KEEP YOUR CSS EXACTLY SAME */
 </style>
 </head>
 
@@ -476,8 +18,8 @@ input[type="range"]::-webkit-slider-thumb:active {
   <div class="logo">Blitz<span>Bet</span></div>
   <div class="balance-wrap">
     <div class="currency-tabs">
-      <span class="toggle active" onclick="setCurrency('eur')">€</span>
-      <span class="toggle" onclick="setCurrency('sol')">SOL</span>
+      <span class="toggle active" onclick="setCurrency('eur', this)">€</span>
+      <span class="toggle" onclick="setCurrency('sol', this)">SOL</span>
     </div>
     <div class="balance-chip">
       <div class="bal-icon">$</div>
@@ -486,30 +28,24 @@ input[type="range"]::-webkit-slider-thumb:active {
   </div>
 </div>
 
-<!-- HOME -->
-<div id="home" class="grid" style="display:grid;">
+<div id="home" style="display:grid;">
   <div class="card" onclick="openGame('dice')">
-    <div class="card-icon"><img src="/assets/dice.png" alt="Dice"></div>
+    <div class="card-icon"><img src="/assets/dice.png"></div>
     <h3>Dice</h3>
     <p>Classic provably fair dice</p>
   </div>
   <div class="card" onclick="openGame('mines')">
-    <div class="card-icon"><img src="/assets/mines.png" alt="Mines"></div>
+    <div class="card-icon"><img src="/assets/mines.png"></div>
     <h3>Mines</h3>
     <p>Find the gems, avoid bombs</p>
   </div>
 </div>
 
-<!-- GAME VIEW -->
 <div id="game">
-  <button class="back-btn" onclick="goBack()">
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 12L6 8l4-4"/></svg>
-    Back
-  </button>
+  <button class="back-btn" onclick="goBack()">Back</button>
   <div id="content"></div>
 </div>
 
-<!-- Audio -->
 <audio id="mineSound" src="/assets/sounds/mine.mp3"></audio>
 <audio id="gemSound" src="/assets/sounds/gem.mp3"></audio>
 <audio id="diceSound" src="/assets/sounds/dice.mp3"></audio>
@@ -523,14 +59,13 @@ let currency="eur";
 let bet=10;
 let active=false;
 
-/* SOUND */
 function play(id){
   let s=document.getElementById(id);
   s.currentTime=0;
   s.play();
 }
 
-/* BALANCE */
+/* BALANCE (INSTANT FEEL) */
 async function loadBalance(){
   let r=await fetch(API+"/user/"+userId);
   let d=await r.json();
@@ -548,10 +83,10 @@ function updateBalance(){
 
 const balanceEl = document.getElementById('balance');
 
-function setCurrency(c){
+function setCurrency(c,el){
   currency=c;
   document.querySelectorAll(".toggle").forEach(e=>e.classList.remove("active"));
-  event.target.classList.add("active");
+  el.classList.add("active");
   updateBalance();
 }
 
@@ -587,7 +122,7 @@ function betUI(){
 
 function updateBet(){
   if(bet<1) bet=1;
-  betVal.innerText="€"+bet.toFixed(2);
+  document.getElementById("betVal").innerText="€"+bet.toFixed(2);
 }
 
 /* DICE */
@@ -595,16 +130,6 @@ function renderDice(){
   content.innerHTML=`
     <div class="panel">
       <div class="panel-title">Dice</div>
-      <div class="dice-stats">
-        <div class="stat-pill">
-          <div class="stat-label">Win Chance</div>
-          <div class="stat-val" id="chanceVal">50%</div>
-        </div>
-        <div class="stat-pill">
-          <div class="stat-label">Roll Result</div>
-          <div class="stat-val" id="rollVal">—</div>
-        </div>
-      </div>
 
       <input type="range" min="1" max="95" value="50" id="chance">
 
@@ -622,19 +147,18 @@ function renderDice(){
   `;
 
   chance.oninput=()=>{
-    chanceVal.innerText=chance.value+"%";
-    barTrack.style.background=`linear-gradient(to right, var(--lose) ${chance.value}%, var(--win) ${chance.value}%)`;
+    barTrack.style.background=`linear-gradient(to right, var(--win) ${chance.value}%, var(--lose) ${chance.value}%)`;
   };
 
-  // Set initial bar
-  barTrack.style.background=`linear-gradient(to right, var(--lose) 50%, var(--win) 50%)`;
+  barTrack.style.background=`linear-gradient(to right, var(--win) 50%, var(--lose) 50%)`;
 }
 
 async function rollDice(){
   play("diceSound");
 
-  let p=pointer;
-  let anim=setInterval(()=>p.style.left=Math.random()*100+"%",20);
+  // instant balance deduction
+  balance -= bet;
+  updateBalance();
 
   let res=await fetch(API+"/dice",{
     method:"POST",
@@ -643,35 +167,32 @@ async function rollDice(){
   });
 
   let d=await res.json();
-  clearInterval(anim);
 
-  p.style.left=d.roll+"%";
+  // smooth animation
+  pointer.style.transition="left 0.6s ease-out";
+  pointer.style.left=d.roll+"%";
 
-  rollVal.innerText=d.roll;
-  const won = d.win;
-  result.innerText=won?"✓ You Win!":"✕ You Lose";
-  result.style.color=won?"var(--win)":"var(--lose)";
-  loadBalance();
+  if(d.win){
+    balance += bet*2;
+  }
+
+  result.innerText=d.win?"✓ You Win!":"✕ You Lose";
+  result.style.color=d.win?"var(--win)":"var(--lose)";
 }
 
 /* MINES */
 function renderMines(){
   content.innerHTML=`
     <div class="mines-layout">
-      <div>
-        <div id="grid"></div>
-      </div>
+      <div><div id="grid"></div></div>
       <div class="mines-controls">
         ${betUI()}
         <div class="panel">
           <div class="panel-title">Mines</div>
-          <div class="mines-slider-row">
-            <span>Count</span>
-            <strong id="mVal">5</strong>
-          </div>
-          <input type="range" min="1" max="24" value="5" id="m" style="margin-bottom:0">
+          <strong id="mVal">5</strong>
+          <input type="range" min="1" max="24" value="5" id="m">
         </div>
-        <button class="btn-primary" onclick="startMines()">Start Game</button>
+        <button id="startBtn" class="btn-primary" onclick="startMines()">Start Game</button>
         <button class="btn-win" onclick="cashout()">Cash Out</button>
       </div>
     </div>
@@ -692,16 +213,26 @@ function createGrid(){
 }
 
 async function startMines(){
+  balance -= bet;
+  updateBalance();
+
+  startBtn.innerText="Game in Progress";
+  startBtn.disabled=true;
+
   await fetch(API+"/mines/start",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({id:userId,bet,mines:m.value})
   });
+
   active=true;
 }
 
 async function clickTile(i,el){
   if(!active) return;
+
+  // instant feedback
+  el.style.background="var(--surface3)";
 
   const res=await fetch(API+"/mines/click",{
     method:"POST",
@@ -715,6 +246,8 @@ async function clickTile(i,el){
     play("mineSound");
     el.innerHTML=`<img src="/assets/bomb.png">`;
     active=false;
+    startBtn.innerText="Start Game";
+    startBtn.disabled=false;
   } else {
     play("gemSound");
     el.innerHTML=`<img src="/assets/gem.png">`;
@@ -722,13 +255,27 @@ async function clickTile(i,el){
 }
 
 async function cashout(){
-  await fetch(API+"/mines/cashout",{
+  let res=await fetch(API+"/mines/cashout",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({id:userId})
   });
-  active=false;
-  loadBalance();
+
+  let d=await res.json();
+
+  // show win briefly
+  result = document.createElement("div");
+  result.innerText = `+€${d.win?.toFixed(2) || 0}`;
+  result.style.color="var(--win)";
+  content.appendChild(result);
+
+  setTimeout(()=>{
+    loadBalance();
+    active=false;
+    startBtn.innerText="Start Game";
+    startBtn.disabled=false;
+    createGrid();
+  },400);
 }
 
 loadBalance();
