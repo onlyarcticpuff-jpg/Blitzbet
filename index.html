@@ -3,9 +3,10 @@
 <head>
   <title>BlitzBet</title>
 </head>
-<body style="background:#0f0f0f;color:white;font-family:sans-serif;text-align:center">
 
-<h1>🎰 BlitzBet</h1>
+<body style="background:#0b0b0f;color:white;font-family:sans-serif;text-align:center">
+
+<h1>⚡ BlitzBet</h1>
 
 <h2 id="balance">$0.00</h2>
 
@@ -13,86 +14,59 @@
 
 <br><br>
 
-<button onclick="playDice()">🎲 Dice</button>
-<button onclick="playMines()">💣 Mines</button>
+<label>Win Chance: <span id="chanceVal">50</span>%</label><br>
+<input type="range" min="1" max="95" value="50" id="chance">
 
-<p id="result"></p>
+<br><br>
+
+<button onclick="rollDice()">🎲 Roll</button>
+
+<h3 id="result"></h3>
 
 <script>
 const API = "https://blit-production.up.railway.app";
+const userId = Number(new URLSearchParams(location.search).get("id"));
 
-const params = new URLSearchParams(window.location.search);
-const userId = Number(params.get("id"));
+const chanceSlider = document.getElementById("chance");
+const chanceVal = document.getElementById("chanceVal");
 
-if (!userId) {
-  document.body.innerHTML = "No user ID provided 💀";
-}
-
-/* ================= LOAD BALANCE ================= */
+chanceSlider.oninput = () => {
+  chanceVal.innerText = chanceSlider.value;
+};
 
 async function loadBalance() {
   const res = await fetch(API + "/user/" + userId);
   const data = await res.json();
-
-  if (data.error) return;
-
   document.getElementById("balance").innerText =
     "$" + data.balanceUSD.toFixed(2);
 }
 
-/* ================= DICE ================= */
-
-async function playDice() {
+async function rollDice() {
   const bet = Number(document.getElementById("bet").value);
+  const chance = Number(chanceSlider.value);
 
-  if (!bet || bet <= 0) return alert("Invalid bet");
+  document.getElementById("result").innerText = "🎲 Rolling...";
+
+  await new Promise(r => setTimeout(r, 600)); // animation delay
 
   const res = await fetch(API + "/dice", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id: userId, bet })
+    body: JSON.stringify({ id: userId, bet, chance })
   });
 
   const data = await res.json();
 
   if (data.error) {
-    document.getElementById("result").innerText = "❌ Invalid bet";
+    document.getElementById("result").innerText = "❌ Error";
     return;
   }
 
   document.getElementById("result").innerText =
-    data.win ? "🔥 You won!" : "💀 You lost";
+    `Roll: ${data.roll} → ${data.win ? "🔥 WIN" : "💀 LOSE"}`;
 
   loadBalance();
 }
-
-/* ================= MINES ================= */
-
-async function playMines() {
-  const bet = Number(document.getElementById("bet").value);
-
-  if (!bet || bet <= 0) return alert("Invalid bet");
-
-  const res = await fetch(API + "/mines", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id: userId, bet })
-  });
-
-  const data = await res.json();
-
-  if (data.error) {
-    document.getElementById("result").innerText = "❌ Invalid bet";
-    return;
-  }
-
-  document.getElementById("result").innerText =
-    data.hitMine ? "💀 Boom!" : "🔥 Safe!";
-
-  loadBalance();
-}
-
-/* ================= INIT ================= */
 
 loadBalance();
 </script>
