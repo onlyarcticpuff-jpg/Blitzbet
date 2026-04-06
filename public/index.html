@@ -580,7 +580,7 @@ async function clickTile(i, el) {
     play("mineSound");
     el.innerHTML = `<img src="/assets/bomb.png">`;
     active = false;
-    
+
     startBtnWrap.innerHTML = `<button class="btn-primary" onclick="startMines()">Start Game</button>`;
     cashoutResultBox.innerHTML = `
       <div class="dice-toast lose">
@@ -590,20 +590,30 @@ async function clickTile(i, el) {
     play("gemSound");
     el.innerHTML = `<img src="/assets/gem.png">`;
     gemsFound++;
-  }
-}
 
-    /* Show running gem count + multiplier if server returns it */
-    const mult = d.multiplier !== undefined ? Number(d.multiplier) : null;
-    let html = `<div class="cashout-box">
-      <div class="co-row"><span class="co-label">Gems found</span><span class="co-val">${gemsFound}</span></div>`;
-    if (mult !== null) {
-      html += `<div class="co-divider"></div>
-      <div class="co-row"><span class="co-label">Multiplier</span><span class="co-val">${mult.toFixed(2)}×</span></div>
-      <div class="co-row"><span class="co-label">Potential payout</span><span class="co-val">€${(sessionBet * mult).toFixed(2)}</span></div>`;
-    }
-    html += `</div>`;
-    cashoutResultBox.innerHTML = html;
+    // 🧠 multiplier calc (no backend)
+    const minesCount = Number(m.value);
+    const safeTiles = 25 - minesCount;
+
+    const mult = Math.pow((25 / safeTiles), gemsFound) * 0.98;
+
+    cashoutResultBox.innerHTML = `
+      <div class="cashout-box">
+        <div class="co-row">
+          <span class="co-label">Gems</span>
+          <span class="co-val">${gemsFound}</span>
+        </div>
+        <div class="co-divider"></div>
+        <div class="co-row">
+          <span class="co-label">Multiplier</span>
+          <span class="co-val">${mult.toFixed(2)}×</span>
+        </div>
+        <div class="co-row">
+          <span class="co-label">Potential</span>
+          <span class="co-val">€${(sessionBet * mult).toFixed(2)}</span>
+        </div>
+      </div>
+    `;
   }
 }
 
@@ -640,7 +650,6 @@ async function cashout() {
   if (d.balance !== undefined) { balance = d.balance; updateBalance(true); }
   else loadBalance();
 }
-
 loadBalance();
 </script>
 </body>
