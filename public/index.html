@@ -406,25 +406,22 @@ function setCurrency(c) {
 
 /* ── NAV ── */
 function openGame(name){
-  home.style.display = "none";
-  game.style.display = "block";
+  const homeEl = document.getElementById("home");
+  const gameEl = document.getElementById("game");
+  const contentEl = document.getElementById("content");
 
-  // 🔥 HARD RESET UI
-  document.getElementById("content").innerHTML = "";
+  homeEl.style.display = "none";
+  gameEl.style.display = "block";
 
-  // 🔥 ALSO REMOVE ANY FLOATING SHIT (safety)
-  document.querySelectorAll("#towerGrid, #towerControls, #towerStats").forEach(e => e.remove());
+  // 🔥 SAFE RESET
+  if (contentEl) contentEl.innerHTML = "";
 
   // reset states
   towerActive = false;
 
   if(name==="dice") renderDice();
   if(name==="mines") renderMines();
-  if(name==="towers") renderTowers
-
-function goBack() {
-  home.style.display = "grid";
-  game.style.display = "none";
+  if(name==="towers") renderTowers();
 }
 
 /* ── BET ── */
