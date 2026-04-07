@@ -671,8 +671,9 @@ async function cashout() {
 
 loadBalance();
   
+
 /* ════════════════════════════════
-   TOWERS
+   TOWERS (FIXED UI + FLOW)
 ════════════════════════════════ */
 
 let towerLevel = 0;
@@ -697,8 +698,9 @@ function renderTowers(){
 
     ${betUI()}
 
-    <button class="btn-primary" onclick="startTowers()">Start Game</button>
-    <button class="btn-win" onclick="cashoutTowers()">Cash Out</button>
+    <div id="towerControls">
+      <button class="btn-primary" onclick="startTowers()">Start Game</button>
+    </div>
 
     <div id="towerStats"></div>
   `;
@@ -712,6 +714,7 @@ function renderTowers(){
   buildTowerGrid();
 }
 
+/* BUILD GRID WITH MULTIPLIERS */
 function buildTowerGrid(){
   towerGrid.innerHTML = "";
 
@@ -720,11 +723,19 @@ function buildTowerGrid(){
     row.style.display = "grid";
     row.style.gridTemplateColumns = "repeat(4,1fr)";
     row.style.gap = "8px";
+    row.style.opacity = r === 0 ? "1" : "0.5";
+
+    // multiplier per row
+    let base = towerDifficulty === "easy" ? 1.3 : towerDifficulty === "medium" ? 1.6 : 2.2;
+    let mult = Math.pow(base, r+1);
 
     for(let c=0;c<4;c++){
       let tile = document.createElement("div");
       tile.className = "tile";
-      tile.onclick = () => towerClick(c, tile);
+      tile.dataset.row = r;
+      tile.onclick = () => towerClick(r, c, tile);
+
+      tile.innerHTML = `<span style="font-size:10px;opacity:0.5">${mult.toFixed(2)}×</span>`;
 
       row.appendChild(tile);
     }
@@ -733,6 +744,7 @@ function buildTowerGrid(){
   }
 }
 
+/* START */
 async function startTowers(){
   await fetch(API+"/towers/start",{
     method:"POST",
@@ -749,11 +761,23 @@ async function startTowers(){
   towerBet = bet;
 
   towerStats.innerHTML = "";
-  buildTowerGrid();
+
+  // 🔥 change button to in progress
+  towerControls.innerHTML = `
+    <div class="btn-in-progress">GAME IN PROGRESS</div>
+    <button class="btn-win" onclick="cashoutTowers()">Cash Out</button>
+  `;
+
+  updateActiveRow();
 }
 
-async function towerClick(col, el){
+/* CLICK */
+async function towerClick(row, col, el){
   if(!towerActive) return;
+  if(row !== towerLevel) return; // only current row clickable
+
+  el.style.transform = "scale(0.9)";
+  setTimeout(()=>el.style.transform="scale(1)",100);
 
   const res = await fetch(API+"/towers/click",{
     method:"POST",
@@ -768,14 +792,20 @@ async function towerClick(col, el){
     el.innerHTML = `<img src="/assets/bomb.png">`;
     towerActive = false;
 
+    towerControls.innerHTML = `<button class="btn-primary" onclick="startTowers()">Start Game</button>`;
+
     towerStats.innerHTML = `<div class="dice-toast lose">💀 You Lost</div>`;
+
     loadBalance();
     return;
   }
 
   play("gemSound");
   el.innerHTML = `<img src="/assets/gem.png">`;
+
   towerLevel++;
+
+  updateActiveRow();
 
   towerStats.innerHTML = `
     <div class="cashout-box">
@@ -791,6 +821,16 @@ async function towerClick(col, el){
   `;
 }
 
+/* ACTIVE ROW VISUAL */
+function updateActiveRow(){
+  const rows = towerGrid.children;
+
+  for(let i=0;i<rows.length;i++){
+    rows[i].style.opacity = i === towerLevel ? "1" : "0.4";
+  }
+}
+
+/* CASHOUT */
 async function cashoutTowers(){
   if(!towerActive) return;
 
@@ -804,6 +844,8 @@ async function cashoutTowers(){
 
   towerActive = false;
 
+  towerControls.innerHTML = `<button class="btn-primary" onclick="startTowers()">Start Game</button>`;
+
   towerStats.innerHTML = `
     <div class="cashout-box">
       <div class="co-row">
@@ -814,7 +856,7 @@ async function cashoutTowers(){
   `;
 
   loadBalance();
-}
+    }
   
 </script>
 </body>
