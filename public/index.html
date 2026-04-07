@@ -220,6 +220,34 @@ input[type="range"]::-webkit-slider-thumb:active {
 .tile:hover  { background: var(--surface3); border-color: var(--border2); }
 .tile:active { transform: scale(0.91); }
 .tile img { width: 32px; height: 32px; object-fit: contain; }
+  .tile.loading {
+  background: var(--surface3);
+  transform: scale(0.92);
+}
+
+.tile.loading::after {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-top: 2px solid #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+.tile.reveal {
+  animation: pop 0.18s ease-out;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pop {
+  0% { transform: scale(0.7); opacity: 0.6; }
+  60% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
 
 .mines-controls { display: flex; flex-direction: column; gap: 12px; }
 .mines-slider-row {
