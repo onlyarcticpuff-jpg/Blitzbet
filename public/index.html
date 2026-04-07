@@ -338,7 +338,11 @@ input[type="range"]::-webkit-slider-thumb:active {
     <p>Find the gems, avoid bombs</p>
   </div>
 </div>
-
+<div class="card" onclick="openGame('towers')">
+  <div class="card-icon"><img src="/assets/towers.png"></div>
+  <h3>Towers</h3>
+  <p>Climb and don’t fall</p>
+</div>
 <!-- GAME VIEW -->
 <div id="game">
   <button class="back-btn" onclick="goBack()">
@@ -404,6 +408,7 @@ function openGame(name) {
   game.style.display = "block";
   if (name === "dice")  renderDice();
   if (name === "mines") renderMines();
+  if(name==="towers") renderTowers();
 }
 
 function goBack() {
@@ -665,6 +670,152 @@ async function cashout() {
 }
 
 loadBalance();
+  
+/* ════════════════════════════════
+   TOWERS
+════════════════════════════════ */
+
+let towerLevel = 0;
+let towerActive = false;
+let towerBet = 0;
+let towerDifficulty = "easy";
+
+function renderTowers(){
+  content.innerHTML = `
+    <div class="panel">
+      <div class="panel-title">Towers</div>
+
+      <div class="mines-slider-row">
+        <span>Difficulty</span>
+        <strong id="diffVal">easy</strong>
+      </div>
+
+      <input type="range" min="0" max="2" value="0" id="diff">
+
+      <div id="towerGrid" style="display:flex;flex-direction:column-reverse;gap:8px;margin-top:14px;"></div>
+    </div>
+
+    ${betUI()}
+
+    <button class="btn-primary" onclick="startTowers()">Start Game</button>
+    <button class="btn-win" onclick="cashoutTowers()">Cash Out</button>
+
+    <div id="towerStats"></div>
+  `;
+
+  diff.oninput = () => {
+    const val = ["easy","medium","hard"][diff.value];
+    towerDifficulty = val;
+    diffVal.innerText = val;
+  };
+
+  buildTowerGrid();
+}
+
+function buildTowerGrid(){
+  towerGrid.innerHTML = "";
+
+  for(let r=0;r<8;r++){
+    let row = document.createElement("div");
+    row.style.display = "grid";
+    row.style.gridTemplateColumns = "repeat(4,1fr)";
+    row.style.gap = "8px";
+
+    for(let c=0;c<4;c++){
+      let tile = document.createElement("div");
+      tile.className = "tile";
+      tile.onclick = () => towerClick(c, tile);
+
+      row.appendChild(tile);
+    }
+
+    towerGrid.appendChild(row);
+  }
+}
+
+async function startTowers(){
+  await fetch(API+"/towers/start",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      id:userId,
+      bet,
+      difficulty:towerDifficulty
+    })
+  });
+
+  towerActive = true;
+  towerLevel = 0;
+  towerBet = bet;
+
+  towerStats.innerHTML = "";
+  buildTowerGrid();
+}
+
+async function towerClick(col, el){
+  if(!towerActive) return;
+
+  const res = await fetch(API+"/towers/click",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({id:userId,col})
+  });
+
+  const d = await res.json();
+
+  if(d.lose){
+    play("mineSound");
+    el.innerHTML = `<img src="/assets/bomb.png">`;
+    towerActive = false;
+
+    towerStats.innerHTML = `<div class="dice-toast lose">💀 You Lost</div>`;
+    loadBalance();
+    return;
+  }
+
+  play("gemSound");
+  el.innerHTML = `<img src="/assets/gem.png">`;
+  towerLevel++;
+
+  towerStats.innerHTML = `
+    <div class="cashout-box">
+      <div class="co-row">
+        <span class="co-label">Level</span>
+        <span class="co-val">${towerLevel}</span>
+      </div>
+      <div class="co-row">
+        <span class="co-label">Multiplier</span>
+        <span class="co-val">${d.multiplier}×</span>
+      </div>
+    </div>
+  `;
+}
+
+async function cashoutTowers(){
+  if(!towerActive) return;
+
+  const res = await fetch(API+"/towers/cashout",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({id:userId})
+  });
+
+  const d = await res.json();
+
+  towerActive = false;
+
+  towerStats.innerHTML = `
+    <div class="cashout-box">
+      <div class="co-row">
+        <span class="co-label">Payout</span>
+        <span class="co-val">€${d.payout}</span>
+      </div>
+    </div>
+  `;
+
+  loadBalance();
+}
+  
 </script>
 </body>
 </html>
