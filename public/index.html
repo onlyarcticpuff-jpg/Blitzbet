@@ -434,7 +434,6 @@ input[type="range"]::-webkit-slider-thumb:active {
 
 </div> <!-- closes #home -->
 
-<!-- GAME VIEW -->
 
 <!-- GAME VIEW -->
 <div id="game">
@@ -479,8 +478,13 @@ async function loadBalance() {
 
 function updateBalance(flash) {
   balanceEl.innerText = currency === "eur"
-    ? "€" + balance.toFixed(2)
-    : (balance / 150).toFixed(3) + " SOL";
+  ? "€" + balance.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })
+  : (balance / 150).toLocaleString(undefined, {
+      maximumFractionDigits: 3
+    }) + " SOL";;
 
   if (flash) {
     balanceEl.classList.remove('bal-flash');
