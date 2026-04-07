@@ -598,7 +598,7 @@ async function clickTile(i, el) {
   const d = await res.json();
 
   if (d.lose) {
-    play("mineSound");
+    play("mines.mp3");
     el.innerHTML = `<img src="/assets/bomb.png">`;
     active = false;
 
