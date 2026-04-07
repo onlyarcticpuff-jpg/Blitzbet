@@ -327,22 +327,26 @@ input[type="range"]::-webkit-slider-thumb:active {
 
 <!-- HOME -->
 <div id="home" style="display:grid;">
+ <div id="home" style="display:grid;">
   <div class="card" onclick="openGame('dice')">
     <div class="card-icon"><img src="/assets/dice.png" alt="Dice"></div>
     <h3>Dice</h3>
     <p>Classic provably fair dice</p>
   </div>
+
   <div class="card" onclick="openGame('mines')">
     <div class="card-icon"><img src="/assets/mines.png" alt="Mines"></div>
     <h3>Mines</h3>
     <p>Find the gems, avoid bombs</p>
   </div>
-</div>
-<div class="card" onclick="openGame('towers')">
-  <div class="card-icon"><img src="/assets/towers.png"></div>
-  <h3>Towers</h3>
-  <p>Climb and don’t fall</p>
-</div>
+
+  <!-- ✅ NOW IT'S INSIDE -->
+  <div class="card" onclick="openGame('towers')">
+    <div class="card-icon"><img src="/assets/towers.png"></div>
+    <h3>Towers</h3>
+    <p>Climb and don’t fall</p>
+  </div>
+ </div>
 
   
 <!-- GAME VIEW -->
