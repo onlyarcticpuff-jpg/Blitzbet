@@ -1080,7 +1080,7 @@ function animateLimbo(target, win){
     let fillPct = (current / target) * 100;
     fill.style.width = fillPct + "%";
 
-    if(progress === 1){
+    if(progress >= 1)
       clearInterval(anim);
 
       display.innerText = target.toFixed(2) + "x";
