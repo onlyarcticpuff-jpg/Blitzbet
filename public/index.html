@@ -326,28 +326,30 @@ input[type="range"]::-webkit-slider-thumb:active {
 </div>
 
 <!-- HOME -->
-<div id="home" style="display:grid;">
- <div id="home" style="display:grid;">
+<div id="home">
   <div class="card" onclick="openGame('dice')">
-    <div class="card-icon"><img src="/assets/dice.png" alt="Dice"></div>
+    <div class="card-icon"><img src="/assets/dice.png"></div>
     <h3>Dice</h3>
     <p>Classic provably fair dice</p>
   </div>
 
   <div class="card" onclick="openGame('mines')">
-    <div class="card-icon"><img src="/assets/mines.png" alt="Mines"></div>
+    <div class="card-icon"><img src="/assets/mines.png"></div>
     <h3>Mines</h3>
     <p>Find the gems, avoid bombs</p>
   </div>
 
-  <!-- ✅ NOW IT'S INSIDE -->
   <div class="card" onclick="openGame('towers')">
     <div class="card-icon"><img src="/assets/towers.png"></div>
     <h3>Towers</h3>
     <p>Climb and don’t fall</p>
   </div>
- </div>
+</div>
 
+<div id="game" style="display:none;">
+  <button onclick="goBack()">Back</button>
+  <div id="content"></div>
+</div>
   
 <!-- GAME VIEW -->
 <div id="game">
@@ -409,24 +411,29 @@ function setCurrency(c) {
 }
 
 /* ── NAV ── */
-function openGame(name){
-  const homeEl = document.getElementById("home");
-  const gameEl = document.getElementById("game");
-  const contentEl = document.getElementById("content");
+function openGame(name) {
+  const home = document.getElementById("home");
+  const game = document.getElementById("game");
+  const content = document.getElementById("content");
 
-  homeEl.style.display = "none";
-  gameEl.style.display = "block";
+  home.style.display = "none";
+  game.style.display = "block";
+  content.innerHTML = "";
 
-  // 🔥 SAFE RESET
-  if (contentEl) contentEl.innerHTML = "";
-
-  // reset states
-  towerActive = false;
-
-  if(name==="dice") renderDice();
-  if(name==="mines") renderMines();
-  if(name==="towers") renderTowers();
+  if (name === "dice") renderDice();
+  if (name === "mines") renderMines();
+  if (name === "towers") renderTowers();
 }
+
+function goBack() {
+  const home = document.getElementById("home");
+  const game = document.getElementById("game");
+  const content = document.getElementById("content");
+
+  home.style.display = "block";
+  game.style.display = "none";
+  content.innerHTML = "";
+    }
 
 /* ── BET ── */
 function betUI() {
