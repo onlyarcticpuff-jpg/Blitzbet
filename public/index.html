@@ -1047,7 +1047,7 @@ async function playLimbo(){
 
   const d = await res.json();
 
-  animateLimbo(d.roll, d.win);
+  animateLimbo(d.multiplier, d.win);
 
   if(d.balance !== undefined){
     balance = d.balance;
