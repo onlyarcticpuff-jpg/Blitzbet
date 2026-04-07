@@ -358,6 +358,32 @@ input[type="range"]::-webkit-slider-thumb:active {
 .co-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
 .co-val { font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 600; color: var(--win); }
 .co-divider { height: 1px; background: rgba(34,197,94,0.12); margin: 2px 0; }
+
+  /* ─── LIMBO ─── */
+.limbo-box {
+  position: relative;
+  height: 110px;
+  border-radius: 14px;
+  background: var(--surface2);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.limbo-fill {
+  position: absolute;
+  inset: 0;
+  width: 0%;
+  background: rgba(59,130,246,0.15);
+}
+
+.limbo-text {
+  position: relative;
+  font-size: 32px;
+  font-family: 'DM Mono', monospace;
+  }
+  
 </style>
 </head>
 <body>
@@ -421,6 +447,7 @@ input[type="range"]::-webkit-slider-thumb:active {
 <audio id="mineSound" src="/assets/sounds/bomb.mp3"></audio>
 <audio id="gemSound"  src="/assets/sounds/gem.mp3"></audio>
 <audio id="diceSound" src="/assets/sounds/dice.mp3"></audio>
+<audio id="limboSound" src="/assets/sounds/limbo.mp3"></audio>
 
 <script>
 const API    = "https://blit-production.up.railway.app";
@@ -937,6 +964,137 @@ async function cashoutTowers(){
 
   loadBalance();
     }
+
+  /* ════════════════════════════════
+   LIMBO
+════════════════════════════════ */
+
+let selectedMultiplier = 2;
+
+function renderLimbo(){
+  content.innerHTML = `
+    <div class="panel">
+      <div class="panel-title">Limbo</div>
+
+      <div class="limbo-box" id="limboBox">
+        <div class="limbo-fill" id="limboFill"></div>
+        <div class="limbo-text" id="limboDisplay">1.00x</div>
+      </div>
+
+      <div style="margin-top:12px;font-size:13px;color:var(--muted)">
+        Target: <span id="targetVal">2.00x</span> |
+        Chance: <span id="chanceVal">49%</span>
+      </div>
+    </div>
+
+    ${betUI()}
+
+    <div class="panel">
+      <div class="panel-title">Multiplier</div>
+
+      <div class="bet-input-row">
+        <span class="bet-label" id="multiVal">2.00x</span>
+        <div class="bet-modifiers">
+          <button class="bet-mod" onclick="setMulti(1.5)">1.5x</button>
+          <button class="bet-mod" onclick="setMulti(2)">2x</button>
+          <button class="bet-mod" onclick="setMulti(5)">5x</button>
+          <button class="bet-mod" onclick="setMulti(10)">10x</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="playLimbo()" id="limboBtn">
+      Place Bet
+    </button>
+  `;
+
+  selectedMultiplier = 2;
+  updateChance();
+}
+
+function setMulti(val){
+  selectedMultiplier = val;
+  multiVal.innerText = val.toFixed(2) + "x";
+  targetVal.innerText = val.toFixed(2) + "x";
+  updateChance();
+}
+
+function updateChance(){
+  const houseEdge = 0.02;
+  let chance = (1 / selectedMultiplier) * (1 - houseEdge) * 100;
+  chanceVal.innerText = chance.toFixed(2) + "%";
+}
+
+async function playLimbo(){
+  const btn = document.getElementById("limboBtn");
+  btn.disabled = true;
+  btn.textContent = "Rolling...";
+
+  document.getElementById("limboSound").currentTime = 0;
+  document.getElementById("limboSound").play();
+
+  const res = await fetch(API + "/limbo", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      id: userId,
+      bet: bet,
+      target: selectedMultiplier
+    })
+  });
+
+  const d = await res.json();
+
+  animateLimbo(d.roll, d.win);
+
+  if(d.balance !== undefined){
+    balance = d.balance;
+    updateBalance(true);
+  } else {
+    loadBalance();
+  }
+
+  btn.disabled = false;
+  btn.textContent = "Place Bet";
+}
+
+function animateLimbo(target, win){
+  let display = document.getElementById("limboDisplay");
+  let fill = document.getElementById("limboFill");
+  let box = document.getElementById("limboBox");
+
+  let start = Date.now();
+  let duration = 1500;
+
+  let anim = setInterval(() => {
+    let progress = (Date.now() - start) / duration;
+    if(progress > 1) progress = 1;
+
+    let eased = 1 - Math.pow(1 - progress, 3);
+    let current = 1 + (target - 1) * eased;
+
+    display.innerText = current.toFixed(2) + "x";
+
+    let fillPct = (current / target) * 100;
+    fill.style.width = fillPct + "%";
+
+    if(progress === 1){
+      clearInterval(anim);
+
+      display.innerText = target.toFixed(2) + "x";
+      fill.style.width = "100%";
+
+      document.getElementById("limboSound").pause();
+
+      if(win){
+        box.style.background = "rgba(34,197,94,0.15)";
+      } else {
+        box.style.background = "rgba(239,68,68,0.08)";
+      }
+    }
+
+  }, 16);
+}
   
 </script>
 </body>
