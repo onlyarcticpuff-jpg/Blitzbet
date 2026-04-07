@@ -349,7 +349,7 @@ input[type="range"]::-webkit-slider-thumb:active {
 </div>
 
 <!-- Audio -->
-<audio id="mineSound" src="/assets/sounds/mines.mp3"></audio>
+<audio id="mineSound" src="/assets/sounds/bomb.mp3"></audio>
 <audio id="gemSound"  src="/assets/sounds/gem.mp3"></audio>
 <audio id="diceSound" src="/assets/sounds/dice.mp3"></audio>
 
@@ -598,7 +598,7 @@ async function clickTile(i, el) {
   const d = await res.json();
 
   if (d.lose) {
-    play("mineSOUND");
+    play("mineSound");
     el.innerHTML = `<img src="/assets/bomb.png">`;
     active = false;
 
