@@ -1047,7 +1047,7 @@ async function playLimbo(){
 
   const d = await res.json();
 
-  animateLimbo(d.multiplier, d.win);
+  animateLimbo(d.roll, d.win);
 
   if(d.balance !== undefined){
     balance = d.balance;
@@ -1059,28 +1059,18 @@ async function playLimbo(){
   btn.disabled = false;
   btn.textContent = "Place Bet";
 }
-
-function animateLimbo(target, win){
+  function animateLimbo(target, win){
   let display = document.getElementById("limboDisplay");
   let fill = document.getElementById("limboFill");
   let box = document.getElementById("limboBox");
 
   let start = Date.now();
-  let duration = 1500;
+  let duration = 1200;
 
   let anim = setInterval(() => {
     let progress = (Date.now() - start) / duration;
-    if(progress > 1) progress = 1;
 
-    let eased = 1 - Math.pow(1 - progress, 3);
-    let current = 1 + (target - 1) * eased;
-
-    display.innerText = current.toFixed(2) + "x";
-
-    let fillPct = (current / target) * 100;
-    fill.style.width = fillPct + "%";
-
-    if(progress >= 1)
+    if(progress >= 1){
       clearInterval(anim);
 
       display.innerText = target.toFixed(2) + "x";
@@ -1088,15 +1078,21 @@ function animateLimbo(target, win){
 
       document.getElementById("limboSound").pause();
 
-      if(win){
-        box.style.background = "rgba(34,197,94,0.15)";
-      } else {
-        box.style.background = "rgba(239,68,68,0.08)";
-      }
+      box.style.background = win
+        ? "rgba(34,197,94,0.15)"
+        : "rgba(239,68,68,0.08)";
+
+      return;
     }
 
+    let eased = 1 - Math.pow(1 - progress, 3);
+    let current = 1 + (target - 1) * eased;
+
+    display.innerText = current.toFixed(2) + "x";
+    fill.style.width = (current / target) * 100 + "%";
+
   }, 16);
-}
+  }
   
 </script>
 </body>
