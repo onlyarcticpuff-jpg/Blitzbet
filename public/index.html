@@ -343,6 +343,8 @@ input[type="range"]::-webkit-slider-thumb:active {
   <h3>Towers</h3>
   <p>Climb and don’t fall</p>
 </div>
+
+  
 <!-- GAME VIEW -->
 <div id="game">
   <button class="back-btn" onclick="goBack()">
@@ -403,13 +405,22 @@ function setCurrency(c) {
 }
 
 /* ── NAV ── */
-function openGame(name) {
+function openGame(name){
   home.style.display = "none";
   game.style.display = "block";
-  if (name === "dice")  renderDice();
-  if (name === "mines") renderMines();
-  if(name==="towers") renderTowers();
-}
+
+  // 🔥 HARD RESET UI
+  document.getElementById("content").innerHTML = "";
+
+  // 🔥 ALSO REMOVE ANY FLOATING SHIT (safety)
+  document.querySelectorAll("#towerGrid, #towerControls, #towerStats").forEach(e => e.remove());
+
+  // reset states
+  towerActive = false;
+
+  if(name==="dice") renderDice();
+  if(name==="mines") renderMines();
+  if(name==="towers") renderTowers
 
 function goBack() {
   home.style.display = "grid";
@@ -761,6 +772,9 @@ async function startTowers(){
   towerBet = bet;
 
   towerStats.innerHTML = "";
+
+// 🔥 FULL RESET
+buildTowerGrid();
 
   // 🔥 change button to in progress
   towerControls.innerHTML = `
