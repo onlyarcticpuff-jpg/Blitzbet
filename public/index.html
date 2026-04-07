@@ -396,7 +396,17 @@ input[type="range"]::-webkit-slider-thumb:active {
     <h3>Towers</h3>
     <p>Climb and don’t fall</p>
   </div>
+  
 </div>
+  <div class="card" onclick="openGame('limbo')">
+  <div class="card-icon">
+    <img src="/assets/limbo.png" alt="Limbo">
+  </div>
+  <div>
+    <h3>Limbo</h3>
+    <p>High risk multiplier game</p>
+  </div>
+  </div>
 
 <!-- GAME VIEW -->
 <div id="game">
@@ -470,6 +480,7 @@ function openGame(name) {
   if (name === "dice") renderDice();
   if (name === "mines") renderMines();
   if (name === "towers") renderTowers();
+  if(name==="limbo") renderLimbo();
 }
 
 function goBack() {
