@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FaceSense</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/4.10.0/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection@1.0.5/dist/face-landmarks-detection.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Playfair+Display:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f5f4f0;
+  --surface: #ffffff;
+  --surface2: #f0ede8;
+  --text: #1a1815;
+  --text-muted: #9b9690;
+  --accent: #2d6a4f;
+  --accent-light: #e8f4ef;
+  --border: rgba(0,0,0,0.07);
+  --shadow: 0 2px 24px rgba(0,0,0,0.07);
+  --shadow-lg: 0 8px 48px rgba(0,0,0,0.13);
+  --radius: 20px;
+  --radius-sm: 12px;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ─── Permission Screen ─────────────────────── */
+#permScreen {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg);
+  z-index: 100;
+  transition: opacity 0.55s ease, visibility 0.55s;
+}
+#permScreen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+.perm-card {
+  background: var(--surface);
+  border-radius: 28px;
+  padding: 52px 48px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+  animation: cardIn 0.55s cubic-bezier(0.16,1,0.3,1) both;
+}
+@keyframes cardIn {
+  from { opacity:0; transform: translateY(20px) scale(0.97); }
+  to   { opacity:1; transform: translateY(0) scale(1); }
+}
+
+.perm-icon {
+  width: 72px; height: 72px;
+  background: var(--accent-light);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 28px;
+}
+.perm-icon svg { width: 30px; height: 30px; }
+
+.perm-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.75rem;
+  font-weight: 500;
+  margin-bottom: 12px;
+  letter-spacing: -0.3px;
+}
+.perm-desc {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.65;
+  margin-bottom: 28px;
+}
+.perm-features {
+  display: flex; flex-direction: column; gap: 10px;
+  margin-bottom: 32px; text-align: left;
+}
+.perm-feat {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 0.84rem; color: var(--text);
+}
+.feat-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%; background: var(--accent); flex-shrink: 0;
+}
+
+.btn-primary {
+  width: 100%; padding: 15px 24px;
+  background: var(--text); color: #fff;
+  border: none; border-radius: var(--radius-sm);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.95rem; font-weight: 500;
+  cursor: pointer; transition: all 0.2s ease;
+}
+.btn-primary:hover { background: #2c2a27; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,0,0,0.18); }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.perm-note { margin-top: 14px; font-size: 0.74rem; color: var(--text-muted); }
+#permError { margin-top: 14px; font-size: 0.8rem; color: #c0392b; display: none; }
+
+/* ─── Loading Screen ─────────────────────────── */
+#loadScreen {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg); z-index: 90;
+  transition: opacity 0.55s ease, visibility 0.55s;
+}
+#loadScreen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+.load-inner { text-align: center; }
+.load-ring {
+  width: 44px; height: 44px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.85s linear infinite;
+  margin: 0 auto 20px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.load-title { font-family: 'Playfair Display', serif; font-size: 1.1rem; margin-bottom: 6px; }
+.load-sub { font-size: 0.78rem; color: var(--text-muted); }
+
+/* ─── App ───────────────────────────────────── */
+#appScreen {
+  width: 100%; min-height: 100vh;
+  display: flex; flex-direction: column;
+  opacity: 0; transition: opacity 0.7s ease;
+}
+#appScreen.visible { opacity: 1; }
+
+.header {
+  padding: 18px 32px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(245,244,240,0.88);
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 10;
+}
+.brand { font-family: 'Playfair Display', serif; font-size: 1.2rem; letter-spacing: -0.2px; }
+.brand span { color: var(--accent); }
+
+.status-badge {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 14px; border-radius: 100px;
+  background: var(--surface2);
+  font-size: 0.77rem; font-weight: 500; color: var(--text-muted);
+  transition: all 0.4s ease;
+}
+.status-badge.active  { background: var(--accent-light); color: var(--accent); }
+.status-badge.searching { background: #fff8e6; color: #a07000; }
+
+.status-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: currentColor; transition: all 0.3s;
+}
+.status-badge.active .status-dot { animation: breathe 2.2s ease infinite; }
+@keyframes breathe {
+  0%,100% { opacity:1; transform:scale(1); }
+  50%      { opacity:0.45; transform:scale(0.65); }
+}
+
+.app-body {
+  display: flex; gap: 24px;
+  flex: 1; max-width: 1120px; margin: 0 auto;
+  width: 100%; padding: 28px 24px; align-items: flex-start;
+}
+
+/* Camera */
+.cam-col { flex: 1; }
+
+.cam-wrap {
+  position: relative; background: #111;
+  border-radius: var(--radius); overflow: hidden;
+  box-shadow: var(--shadow-lg); aspect-ratio: 4/3;
+}
+
+video {
+  width: 100%; height: 100%; object-fit: cover;
+  display: block; transform: scaleX(-1);
+}
+
+canvas {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; transform: scaleX(-1);
+}
+
+.cam-vignette {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.4) 100%);
+  pointer-events: none; z-index: 2;
+}
+
+.cam-ui {
+  position: absolute; inset: 0; z-index: 3;
+  pointer-events: none; padding: 16px;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.cam-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.cam-pill {
+  background: rgba(0,0,0,0.32);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  color: rgba(255,255,255,0.8);
+  font-size: 0.7rem; font-weight: 500;
+  padding: 5px 12px; border-radius: 100px;
+}
+.cam-pill.dim { color: rgba(255,255,255,0.5); }
+.cam-bottom { display: flex; justify-content: center; }
+
+.no-face-pill {
+  background: rgba(0,0,0,0.36);
+  backdrop-filter: blur(10px);
+  color: rgba(255,255,255,0.55);
+  font-size: 0.74rem; padding: 6px 16px; border-radius: 100px;
+  opacity: 0; transform: translateY(5px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.no-face-pill.show { opacity: 1; transform: translateY(0); }
+
+/* Data panel */
+.data-col {
+  width: 288px; flex-shrink: 0;
+  display: flex; flex-direction: column; gap: 12px;
+}
+
+.card {
+  background: var(--surface); border-radius: var(--radius-sm);
+  padding: 20px; box-shadow: var(--shadow);
+  transition: box-shadow 0.25s;
+}
+.card:hover { box-shadow: 0 4px 32px rgba(0,0,0,0.1); }
+
+.card-label {
+  font-size: 0.67rem; font-weight: 500;
+  letter-spacing: 1.3px; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 16px;
+}
+
+.face-row { display: flex; align-items: flex-end; justify-content: space-between; }
+.big-num {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.8rem; font-weight: 400; line-height: 1;
+  transition: color 0.35s;
+}
+.big-num.on { color: var(--accent); }
+.sub-label { font-size: 0.73rem; color: var(--text-muted); margin-top: 3px; }
+.kp-count { font-size: 1.15rem; font-weight: 500; }
+
+.conf-track {
+  height: 3px; background: var(--surface2);
+  border-radius: 100px; margin-top: 16px; overflow: hidden;
+}
+.conf-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #52b788);
+  border-radius: 100px; width: 0%;
+  transition: width 0.5s cubic-bezier(0.25,1,0.5,1);
+}
+.conf-row {
+  display: flex; justify-content: space-between;
+  margin-top: 6px;
+}
+.conf-row span { font-size: 0.72rem; color: var(--text-muted); }
+.conf-row strong { font-size: 0.72rem; font-weight: 500; }
+
+.metric {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+}
+.metric:last-child { border-bottom: none; padding-bottom: 0; }
+.metric-name { font-size: 0.81rem; color: var(--text-muted); }
+.metric-val {
+  font-size: 0.86rem; font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.3s;
+}
+.metric-val.hl { color: var(--accent); }
+
+/* Orientation visual */
+.orient-wrap {
+  display: flex; align-items: center; justify-content: center;
+  height: 72px; margin-bottom: 12px;
+  perspective: 300px;
+}
+.orient-face {
+  width: 34px; height: 44px;
+  border: 2px solid var(--accent);
+  border-radius: 50% 50% 42% 42% / 46% 46% 54% 54%;
+  background: var(--accent-light);
+  transition: transform 0.3s ease;
+  position: relative;
+}
+.orient-face::after {
+  content: '';
+  position: absolute; top: 13px; left: 7px; right: 7px; height: 1.5px;
+  background: var(--accent); border-radius: 2px; opacity: 0.3;
+}
+
+/* Chip grid */
+.chip-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 7px; }
+.chip {
+  padding: 8px 4px; border-radius: 8px;
+  background: var(--surface2);
+  font-size: 0.71rem; font-weight: 500;
+  color: var(--text-muted); text-align: center;
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+}
+.chip.on {
+  background: var(--accent-light);
+  color: var(--accent);
+  border-color: rgba(45,106,79,0.14);
+}
+
+@media (max-width: 800px) {
+  .app-body { flex-direction: column; padding: 16px; }
+  .data-col { width: 100%; }
+  .header { padding: 16px 20px; }
+}
+</style>
+</head>
+<body>
+
+<!-- PERMISSION SCREEN -->
+<div id="permScreen">
+  <div class="perm-card">
+    <div class="perm-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#2d6a4f" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+        <circle cx="12" cy="13" r="4"/>
+      </svg>
+    </div>
+    <h1 class="perm-title">Camera Access</h1>
+    <p class="perm-desc">FaceSense uses your camera to map facial landmarks in real time. All analysis runs locally — nothing is sent anywhere.</p>
+    <div class="perm-features">
+      <div class="perm-feat"><div class="feat-dot"></div><span>478-point facial mesh</span></div>
+      <div class="perm-feat"><div class="feat-dot"></div><span>Head orientation & proportions</span></div>
+      <div class="perm-feat"><div class="feat-dot"></div><span>Fully private, on-device processing</span></div>
+    </div>
+    <button class="btn-primary" id="allowBtn">Allow Camera Access</button>
+    <p class="perm-note">Your browser will ask for permission.</p>
+    <p id="permError"></p>
+  </div>
+</div>
+
+<!-- LOADING SCREEN -->
+<div id="loadScreen" class="hidden">
+  <div class="load-inner">
+    <div class="load-ring"></div>
+    <p class="load-title">Loading model…</p>
+    <p class="load-sub">Just a moment on first use</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appScreen">
+  <header class="header">
+    <div class="brand">Face<span>Sense</span></div>
+    <div class="status-badge" id="statusBadge">
+      <div class="status-dot"></div>
+      <span id="statusText">Ready</span>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <div class="cam-col">
+      <div class="cam-wrap">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="canvas"></canvas>
+        <div class="cam-vignette"></div>
+        <div class="cam-ui">
+          <div class="cam-top">
+            <div class="cam-pill">Live</div>
+            <div class="cam-pill dim" id="fpsPill">— fps</div>
+          </div>
+          <div class="cam-bottom">
+            <div class="no-face-pill" id="noFacePill">No face detected</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="data-col">
+      <!-- Detection -->
+      <div class="card">
+        <div class="card-label">Detection</div>
+        <div class="face-row">
+          <div>
+            <div class="big-num" id="bigFaces">0</div>
+            <div class="sub-label">faces detected</div>
+          </div>
+          <div style="text-align:right">
+            <div class="kp-count" id="mKp">—</div>
+            <div class="sub-label">keypoints</div>
+          </div>
+        </div>
+        <div class="conf-track"><div class="conf-fill" id="confFill"></div></div>
+        <div class="conf-row">
+          <span>Confidence</span>
+          <strong id="mConf">—</strong>
+        </div>
+      </div>
+
+      <!-- Proportions -->
+      <div class="card">
+        <div class="card-label">Proportions</div>
+        <div class="metric">
+          <span class="metric-name">Width</span>
+          <span class="metric-val" id="mW">—</span>
+        </div>
+        <div class="metric">
+          <span class="metric-name">Height</span>
+          <span class="metric-val" id="mH">—</span>
+        </div>
+        <div class="metric">
+          <span class="metric-name">Aspect ratio</span>
+          <span class="metric-val hl" id="mAR">—</span>
+        </div>
+        <div class="metric">
+          <span class="metric-name">Center X</span>
+          <span class="metric-val" id="mCx">—</span>
+        </div>
+        <div class="metric">
+          <span class="metric-name">Center Y</span>
+          <span class="metric-val" id="mCy">—</span>
+        </div>
+      </div>
+
+      <!-- Orientation -->
+      <div class="card">
+        <div class="card-label">Head Orientation</div>
+        <div class="orient-wrap">
+          <div class="orient-face" id="orientFace"></div>
+        </div>
+        <div class="metric">
+          <span class="metric-name">Yaw (left / right)</span>
+          <span class="metric-val" id="mYaw">—</span>
+        </div>
+        <div class="metric">
+          <span class="metric-name">Pitch (up / down)</span>
+          <span class="metric-val" id="mPitch">—</span>
+        </div>
+      </div>
+
+      <!-- Landmark regions -->
+      <div class="card">
+        <div class="card-label">Landmark Regions</div>
+        <div class="chip-grid">
+          <div class="chip" id="chip-eyes">Eyes</div>
+          <div class="chip" id="chip-nose">Nose</div>
+          <div class="chip" id="chip-mouth">Mouth</div>
+          <div class="chip" id="chip-jaw">Jaw</div>
+          <div class="chip" id="chip-brows">Brows</div>
+          <div class="chip" id="chip-oval">Oval</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const permScreen = $('permScreen');
+const loadScreen = $('loadScreen');
+const appScreen  = $('appScreen');
+const video      = $('video');
+const canvas     = $('canvas');
+const ctx        = canvas.getContext('2d');
+
+let detector = null, frameCount = 0, lastFpsTime = performance.now(), fps = 0;
+
+const REGIONS = {
+  eyes:  [33,7,163,144,145,153,154,155,133,246,161,160,159,158,157,173,263,249,390,373,374,380,381,382,362],
+  nose:  [1,2,5,4,195,197,6,94,98,327,326],
+  mouth: [61,185,40,39,37,0,267,269,270,409,291,375,321,405,314,17,84,181,91,146],
+  jaw:   [172,136,150,149,176,148,152,377,400,378,379,365,397,288,361,323],
+  brows: [46,53,52,65,55,70,63,105,66,107,336,296,334,293,300,276,283,282,295,285],
+  oval:  [10,338,297,332,284,251,389,356,454,323,361,288,397,365,379,378,400,377,152,148,176,149,150,136,172,58,132,93,234,127,162,21,54,103,67,109]
+};
+
+const COLORS = {
+  eyes:'rgba(82,183,136,0.9)',nose:'rgba(45,106,79,0.75)',
+  mouth:'rgba(190,130,150,0.85)',jaw:'rgba(120,160,210,0.7)',
+  brows:'rgba(200,165,80,0.8)',oval:'rgba(180,180,220,0.3)'
+};
+
+// ── Permission ──────────────────────────────
+$('allowBtn').addEventListener('click', async () => {
+  const btn = $('allowBtn');
+  btn.disabled = true;
+  btn.textContent = 'Requesting…';
+  $('permError').style.display = 'none';
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }
+    });
+    video.srcObject = stream;
+    await new Promise(r => video.addEventListener('loadedmetadata', r, { once: true }));
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    permScreen.classList.add('hidden');
+    loadScreen.classList.remove('hidden');
+    await loadModel();
+    loadScreen.classList.add('hidden');
+    appScreen.classList.add('visible');
+    setStatus('searching');
+    requestAnimationFrame(detect);
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Allow Camera Access';
+    const errEl = $('permError');
+    errEl.style.display = 'block';
+    errEl.textContent = err.name === 'NotAllowedError'
+      ? 'Camera access denied. Please allow it in your browser settings.'
+      : err.name === 'NotFoundError'
+      ? 'No camera found on this device.'
+      : 'Could not access camera: ' + err.message;
+  }
+});
+
+async function loadModel() {
+  detector = await faceLandmarksDetection.createDetector(
+    faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh,
+    { runtime: 'tfjs', maxFaces: 3, refineLandmarks: true }
+  );
+}
+
+// ── Status ──────────────────────────────────
+function setStatus(s) {
+  $('statusBadge').className = 'status-badge ' + s;
+  $('statusText').textContent = { active:'Tracking', searching:'Scanning' }[s] || 'Ready';
+}
+
+function set(id, v) { const e = $(id); if (e) e.textContent = v; }
+function chip(name, on) { const e = $('chip-'+name); if (e) e.className='chip'+(on?' on':''); }
+
+// ── Drawing ──────────────────────────────────
+function drawMesh(kps) {
+  // Micro dots
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  for (const k of kps) {
+    ctx.beginPath();
+    ctx.arc(k.x, k.y, 1, 0, Math.PI*2);
+    ctx.fill();
+  }
+  // Region contours
+  for (const [r, idxs] of Object.entries(REGIONS)) {
+    ctx.strokeStyle = COLORS[r];
+    ctx.lineWidth = r === 'oval' ? 1 : 1.6;
+    ctx.shadowColor = COLORS[r];
+    ctx.shadowBlur = r === 'oval' ? 2 : 7;
+    ctx.beginPath();
+    let first = true;
+    for (const i of idxs) {
+      const k = kps[i]; if (!k) continue;
+      first ? ctx.moveTo(k.x, k.y) : ctx.lineTo(k.x, k.y);
+      first = false;
+    }
+    ctx.stroke();
+  }
+  ctx.shadowBlur = 0;
+}
+
+function drawBox(box) {
+  const { xMin: x, yMin: y, width: w, height: h } = box;
+  const r = 14;
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath(); ctx.stroke();
+}
+
+// ── Metrics ──────────────────────────────────
+function calcMetrics(face) {
+  const { keypoints: kps, box } = face;
+  const cx = box.xMin + box.width/2, cy = box.yMin + box.height/2;
+  let yawDeg = 0, pitchDeg = 0, yaw = '—', pitch = '—';
+  const nose = kps[1], center = kps[168];
+  if (nose && center) {
+    yawDeg   = (nose.x - center.x) / box.width  * 80;
+    pitchDeg = (nose.y - center.y) / box.height * 80;
+    yaw   = (yawDeg   > 0 ? '+':'') + yawDeg.toFixed(1)   + '°';
+    pitch = (pitchDeg > 0 ? '+':'') + pitchDeg.toFixed(1) + '°';
+  }
+  return {
+    w: box.width.toFixed(0), h: box.height.toFixed(0),
+    ar: (box.width/box.height).toFixed(2),
+    cx: cx.toFixed(0), cy: cy.toFixed(0),
+    yaw, pitch, yawDeg, pitchDeg, kpCount: kps.length
+  };
+}
+
+// ── Detection loop ───────────────────────────
+async function detect() {
+  frameCount++;
+  const now = performance.now();
+  if (frameCount % 30 === 0) {
+    fps = Math.round(30000 / (now - lastFpsTime));
+    lastFpsTime = now;
+    $('fpsPill').textContent = (fps || '—') + ' fps';
+  }
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  let faces = [];
+  try { faces = await detector.estimateFaces(video, { flipHorizontal: false }); } catch(_) {}
+
+  const has = faces.length > 0;
+  const nfp = $('noFacePill');
+  nfp.className = 'no-face-pill' + (has ? '' : ' show');
+  setStatus(has ? 'active' : 'searching');
+
+  const bf = $('bigFaces');
+  bf.textContent = faces.length;
+  bf.className = 'big-num' + (has ? ' on' : '');
+
+  if (has) {
+    const f = faces[0];
+    const m = calcMetrics(f);
+    set('mKp',   m.kpCount);
+    set('mConf', f.score ? (f.score*100).toFixed(1)+'%' : '—');
+    set('mW',    m.w+'px'); set('mH', m.h+'px');
+    set('mAR',   m.ar);
+    set('mCx',   m.cx+'px'); set('mCy', m.cy+'px');
+    set('mYaw',  m.yaw); set('mPitch', m.pitch);
+    $('confFill').style.width = (f.score ? (f.score*100).toFixed(1) : 0) + '%';
+    $('orientFace').style.transform =
+      `rotateY(${m.yawDeg*0.45}deg) rotateX(${-m.pitchDeg*0.38}deg)`;
+    Object.keys(REGIONS).forEach(r => chip(r, true));
+    faces.forEach(fc => { drawBox(fc.box); drawMesh(fc.keypoints); });
+  } else {
+    ['mKp','mConf','mW','mH','mAR','mCx','mCy','mYaw','mPitch'].forEach(id => set(id,'—'));
+    $('confFill').style.width = '0%';
+    $('orientFace').style.transform = '';
+    Object.keys(REGIONS).forEach(r => chip(r, false));
+  }
+
+  requestAnimationFrame(detect);
+}
+</script>
+</body>
+</html>
